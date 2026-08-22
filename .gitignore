@@ -1,0 +1,17 @@
+# Agentes / AI skills descargadas
+.agent/
+.agents/
+
+# Entorno y secretos
+.env
+.env*.local
+
+# Node.js & Builds
+node_modules/
+dist/
+build/
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
