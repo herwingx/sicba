@@ -1,0 +1,229 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Definición de roles del sistema
+enum Role {
+  ADMIN
+  MAESTRO
+  ALUMNO
+}
+
+/// Implementé este modelo para almacenar de forma centralizada a todos los usuarios del sistema.
+/// Decidí separar la información básica (email, contraseña, rol) para simplificar la autenticación.
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(ALUMNO)
+  
+  /// Relación 1:1 con el perfil detallado del estudiante o profesor
+  profile   Profile?
+  
+  /// Exámenes que este usuario (MAESTRO) ha creado
+  examsCreated Exam[] @relation("ExamCreator")
+  
+  /// Sesiones activas (para control de concurrencia y fraude)
+  sessions  Session[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Implementé este modelo para guardar los datos específicos del usuario, separándolos del inicio de sesión.
+/// Aquí podemos guardar información como semestre, carrera y grupo si es alumno.
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  firstName String
+  lastName  String
+  
+  /// Ejemplo: "ISC", "Mecatrónica". Puede ser null si es maestro o admin.
+  career    String?
+  semester  Int?
+  
+  /// Estaciones o computadoras asignadas
+  station   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Implementé esta tabla para manejar las materias (Ciencias Básicas: Física, Química, Matemáticas, etc.)
+model Subject {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  
+  questions   Question[]
+  exams       Exam[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Implementé el Banco de Reactivos aquí. 
+/// Usé un campo 'content' y 'explanation' que soportarán LaTeX (KaTeX).
+model Question {
+  id          String   @id @default(uuid())
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  
+  /// El texto de la pregunta (soporta Markdown y LaTeX)
+  content     String
+  
+  /// Nivel de dificultad (ej. 1 a 5)
+  difficulty  Int      @default(1)
+  
+  /// URL de una imagen opcional alojada en R2
+  imageUrl    String?
+
+  /// Justificación de la respuesta (para retroalimentación)
+  explanation String?
+  
+  options     Option[]
+  examQuestions ExamQuestion[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Implementé esta tabla para guardar las múltiples opciones de cada pregunta (reactivo).
+model Option {
+  id          String   @id @default(uuid())
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  /// El texto de la opción (también soporta LaTeX)
+  content     String
+  
+  /// Indica si esta es la respuesta correcta
+  isCorrect   Boolean  @default(false)
+}
+
+/// Implementé este modelo para los exámenes o concursos activos.
+model Exam {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  
+  /// Materia a la que pertenece este examen
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  
+  /// Quién creó este examen
+  creatorId   String
+  creator     User     @relation("ExamCreator", fields: [creatorId], references: [id])
+  
+  /// Cuándo empieza y termina el concurso (cronómetro global)
+  startTime   DateTime
+  endTime     DateTime
+  
+  /// Tiempo límite por alumno en minutos (por si entran tarde)
+  timeLimit   Int
+  
+  isActive    Boolean  @default(false)
+
+  questions   ExamQuestion[]
+  participations Participation[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Tabla pivot para la relación muchos-a-muchos entre Exámenes y Preguntas (Reactivos)
+model ExamQuestion {
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  
+  questionId  String
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  /// El orden en el que aparece (aunque luego se hará shuffle dinámico)
+  order       Int
+
+  @@id([examId, questionId])
+}
+
+/// Implementé este modelo para llevar el registro de qué alumno participa en qué examen.
+model Participation {
+  id          String   @id @default(uuid())
+  examId      String
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  
+  studentId   String
+  /// Referencia a Profile u User. Usaremos User por simplicidad y consistencia
+  
+  /// Estado del examen del alumno
+  status      ParticipationStatus @default(PENDING)
+  
+  /// Puntaje total calculado al final
+  score       Float?
+  
+  /// Tiempos registrados por el alumno
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  answers     Answer[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([examId, studentId])
+}
+
+enum ParticipationStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  DISQUALIFIED
+}
+
+/// Implementé este modelo para almacenar las respuestas que el alumno va seleccionando en tiempo real.
+model Answer {
+  id              String   @id @default(uuid())
+  participationId String
+  participation   Participation @relation(fields: [participationId], references: [id], onDelete: Cascade)
+  
+  questionId      String
+  
+  /// La opción que el alumno eligió
+  selectedOptionId String?
+  
+  /// Tiempo que el alumno tardó en esta pregunta en segundos
+  timeSpent       Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([participationId, questionId])
+}
+
+/// Implementé este modelo para gestionar el Anti-trampas (Sesión Única Activa)
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  
+  /// Fecha de expiración de la sesión
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+}
