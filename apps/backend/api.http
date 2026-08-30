@@ -1,0 +1,64 @@
+### Variables Globales
+@baseUrl = http://localhost:3001/api
+@adminEmail = admin@sicba.edu
+@password = password123
+
+### ==========================================
+### 1. HEALTH CHECK
+### ==========================================
+GET {{baseUrl}}/health
+
+
+### ==========================================
+### 2. AUTENTICACIÓN
+### ==========================================
+
+### 2.1 Login de Administrador
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{password}}"
+}
+
+### Extraer Token
+@token = {{loginAdmin.response.body.token}}
+
+### 2.2 Registro de Nuevo Usuario (Opcional)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "nuevo@sicba.edu",
+  "password": "password123",
+  "role": "ALUMNO",
+  "firstName": "Nuevo",
+  "lastName": "Estudiante"
+}
+
+
+### ==========================================
+### 3. PREGUNTAS (Protegidas)
+### ==========================================
+
+### 3.1 Obtener todas las preguntas
+GET {{baseUrl}}/questions
+Authorization: Bearer {{token}}
+
+### 3.2 Crear nueva pregunta
+POST {{baseUrl}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "content": "¿Cuál es la integral de x^2?",
+  "subjectId": "aqui-va-el-id-de-la-materia",
+  "difficulty": "MEDIUM",
+  "options": [
+    { "content": "(x^3)/3 + C", "isCorrect": true },
+    { "content": "2x", "isCorrect": false },
+    { "content": "x^3 + C", "isCorrect": false }
+  ]
+}
