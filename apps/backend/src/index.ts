@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 // Se usará el cliente importado desde nuestro monorepo
 import { prisma } from '@sicba/database';
 
+import authRoutes from './routes/auth';
+import questionsRoutes from './routes/questions';
+
 dotenv.config();
 
 const app = express();
@@ -16,6 +19,10 @@ app.use(helmet());
 app.use(cors());
 app.use(compression());
 app.use(express.json());
+
+// Rutas de la API
+app.use('/api/auth', authRoutes);
+app.use('/api/questions', questionsRoutes);
 
 /**
  * Endpoint de prueba de salud de la API.
