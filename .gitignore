@@ -5,6 +5,11 @@
 .cursor/
 .devin/
 
+# Documentación interna (No subir al repo)
+docs/videos/
+docs/guias/
+docs/planificacion/
+
 # Entorno y secretos
 .env
 .env*.local
