@@ -1,6 +1,9 @@
 # Agentes / AI skills descargadas
 .agent/
 .agents/
+.claude/
+.cursor/
+.devin/
 
 # Entorno y secretos
 .env

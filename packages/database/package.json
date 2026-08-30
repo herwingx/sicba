@@ -1,12 +1,14 @@
 {
   "name": "@sicba/database",
+  "type": "module",
   "version": "1.0.0",
   "description": "SICBA Master Database Module",
   "main": "index.ts",
   "types": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma skills sync || exit 0",
+    "contract:emit": "prisma contract emit"
   },
   "keywords": [],
   "author": "",
@@ -14,10 +16,10 @@
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "@types/node": "26.4.0",
-    "prisma": "8.0.0-rc.12",
+    "prisma": "6.4.1",
     "typescript": "7.0.2"
   },
   "dependencies": {
-    "@prisma/client": "7.10.0"
+    "@prisma/client": "6.4.1"
   }
 }
