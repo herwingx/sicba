@@ -65,6 +65,26 @@ router.post('/login', async (req: Request, res: Response) => {
     // Generar Token
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
     
+    // CONTROL DE SESIÓN ÚNICA (Anti-trampa)
+    // 1. Invalidar cualquier sesión anterior de este usuario
+    await prisma.session.deleteMany({
+      where: { userId: user.id }
+    });
+
+    // 2. Registrar la nueva sesión
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 8); // Coincide con JWT expiresIn
+
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        token: token,
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        expiresAt
+      }
+    });
+    
     res.json({ token, role: user.role, email: user.email });
   } catch (error) {
     res.status(500).json({ error: 'Error en inicio de sesión' });
