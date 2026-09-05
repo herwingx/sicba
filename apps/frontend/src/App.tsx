@@ -83,6 +83,7 @@ export default function App() {
         <AppSidebar
           onNavigate={(page) => setCurrentPage(page as Page)}
           currentPage={currentPage}
+          onLogout={handleLogout}
         />
         <SidebarInset>
           {/* Header sticky */}

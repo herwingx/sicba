@@ -30,9 +30,10 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: { name: string; email: string; avatar: string }
   onNavigate?: (page: string) => void
   currentPage?: string
+  onLogout?: () => void
 }
 
-export function AppSidebar({ user, onNavigate, currentPage, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }: AppSidebarProps) {
   const navMain = [
     {
       title: "Panel Principal",
@@ -124,7 +125,7 @@ export function AppSidebar({ user, onNavigate, currentPage, ...props }: AppSideb
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={defaultUser} />
+        <NavUser user={defaultUser} onLogout={onLogout} />
       </SidebarFooter>
     </Sidebar>
   )
