@@ -77,6 +77,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
+  const [subjectsLoading, setSubjectsLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
@@ -104,10 +105,23 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
   }
 
   const loadSubjects = async () => {
+    setSubjectsLoading(true)
     try {
-      const res = await fetch(`${API}/api/subjects`, { headers })
-      if (res.ok) setSubjects(await res.json())
-    } catch { /* silencioso */ }
+      const t = localStorage.getItem('sicba_token')
+      const res = await fetch(`${API}/api/subjects`, {
+        headers: { Authorization: `Bearer ${t}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSubjects(Array.isArray(data) ? data : [])
+      } else {
+        console.error('[subjects] Status:', res.status, await res.text())
+      }
+    } catch (err) {
+      console.error('[subjects] fetch error:', err)
+    } finally {
+      setSubjectsLoading(false)
+    }
   }
 
   const loadQuestions = async (subjectId: string) => {
@@ -187,7 +201,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => { setDialogOpen(true); loadSubjects() }}>
             <PlusCircleIcon data-icon="inline-start" />
             Crear Examen
           </Button>
@@ -299,7 +313,9 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
             {/* Materia */}
             <div className="grid gap-2">
               <Label htmlFor="exam-subject">Materia</Label>
-              {subjects.length > 0 ? (
+              {subjectsLoading ? (
+                <div className="h-9 w-full rounded-md border bg-muted animate-pulse" />
+              ) : subjects.length > 0 ? (
                 <Select value={form.subjectId} onValueChange={handleSubjectChange}>
                   <SelectTrigger id="exam-subject">
                     <SelectValue placeholder="Selecciona una materia" />
@@ -311,13 +327,17 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <Input id="exam-subject" placeholder="ID de la materia (UUID)"
                     value={form.subjectId} onChange={(e) => setForm((f) => ({ ...f, subjectId: e.target.value }))} />
-                  <p className="text-xs text-muted-foreground">Endpoint /api/subjects no disponible — ingresa el UUID directamente.</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground">No se pudieron cargar las materias.</p>
+                    <button onClick={loadSubjects} className="text-xs text-primary underline">Reintentar</button>
+                  </div>
                 </div>
               )}
             </div>
+
 
             {/* Preguntas */}
             {questions.length > 0 ? (
