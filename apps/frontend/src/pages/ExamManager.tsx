@@ -111,6 +111,14 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
       const res = await fetch(`${API}/api/subjects`, {
         headers: { Authorization: `Bearer ${t}` },
       })
+      if (res.status === 401) {
+        // Token inválido o sesión expirada (puede pasar tras re-seed)
+        // → limpiar y forzar re-login
+        localStorage.removeItem('sicba_token')
+        localStorage.removeItem('sicba_role')
+        window.location.reload()
+        return
+      }
       if (res.ok) {
         const data = await res.json()
         setSubjects(Array.isArray(data) ? data : [])

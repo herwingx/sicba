@@ -1,9 +1,8 @@
-"use client"
-
 import * as React from "react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { ChevronDownIcon } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -25,15 +24,10 @@ interface DateTimePickerProps {
 export function DateTimePicker({ id, label, value, onChange }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
 
-  // Extrae la hora actual del valor o usa un default
-  const timeValue = value
-    ? format(value, "HH:mm")
-    : "08:00"
+  const timeValue = value ? format(value, "HH:mm") : "08:00"
 
   const handleDaySelect = (day: Date | undefined) => {
     if (!day) { onChange(undefined); setOpen(false); return }
-
-    // Conservar la hora que ya tenía el campo de tiempo
     const [hours, minutes] = timeValue.split(":").map(Number)
     const combined = new Date(day)
     combined.setHours(hours ?? 0, minutes ?? 0, 0, 0)
@@ -52,20 +46,21 @@ export function DateTimePicker({ id, label, value, onChange }: DateTimePickerPro
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <div className="flex gap-2">
-        {/* Selector de fecha */}
+        {/* Selector de fecha con asChild (patrón estándar shadcn) */}
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger
-            render={
-              <Button
-                id={id}
-                variant="outline"
-                className="w-36 justify-between font-normal"
-              >
-                {value ? format(value, "dd/MM/yyyy") : "Seleccionar"}
-                <ChevronDownIcon data-icon="inline-end" />
-              </Button>
-            }
-          />
+          <PopoverTrigger asChild>
+            <Button
+              id={id}
+              variant="outline"
+              className={cn(
+                "w-36 justify-start gap-2 font-normal",
+                !value && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="size-4 shrink-0" />
+              {value ? format(value, "dd/MM/yyyy") : "Seleccionar"}
+            </Button>
+          </PopoverTrigger>
           <PopoverContent className="w-auto overflow-hidden p-0" align="start">
             <Calendar
               mode="single"
@@ -81,7 +76,7 @@ export function DateTimePicker({ id, label, value, onChange }: DateTimePickerPro
         {/* Selector de hora */}
         <Input
           type="time"
-          className="w-28 appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+          className="w-28 bg-background"
           value={timeValue}
           onChange={handleTimeChange}
         />
