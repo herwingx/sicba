@@ -8,6 +8,7 @@ import { prisma } from '@sicba/database';
 
 import authRoutes from './routes/auth';
 import questionsRoutes from './routes/questions';
+import examRoutes from './routes/exams';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use(express.json());
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionsRoutes);
+app.use('/api/exams', examRoutes);
 
 /**
  * Endpoint de prueba de salud de la API.

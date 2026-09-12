@@ -3,10 +3,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
+  Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { LogOutIcon } from 'lucide-react'
@@ -15,16 +12,27 @@ import { LoginForm } from '@/components/login-form'
 import { AppSidebar } from '@/components/app-sidebar'
 import { DashboardHome } from '@/pages/DashboardHome'
 import { QuestionsAdmin } from '@/pages/QuestionsAdmin'
+import { ExamManager } from '@/pages/ExamManager'
+import { ExamRoom } from '@/pages/ExamRoom'
+import { ExamResult } from '@/pages/ExamResult'
 
-type Page = 'dashboard' | 'questions' | 'exams' | 'students' | 'users' | 'reports'
+type Page = 'dashboard' | 'questions' | 'exams' | 'exam-room' | 'exam-result' | 'students' | 'users' | 'reports'
 
 const PAGE_LABELS: Record<Page, string> = {
   dashboard: 'Panel Principal',
   questions: 'Banco de Reactivos',
   exams: 'Exámenes',
+  'exam-room': 'Examen en Curso',
+  'exam-result': 'Resultado del Examen',
   students: 'Alumnos',
   users: 'Usuarios del Sistema',
   reports: 'Reportes',
+}
+
+interface ExamResultData {
+  score: number
+  correctCount: number
+  totalQuestions: number
 }
 
 function PlaceholderPage({ page }: { page: Page }) {
@@ -41,10 +49,10 @@ function PlaceholderPage({ page }: { page: Page }) {
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('sicba_token'))
   const [currentPage, setCurrentPage] = useState<Page>('dashboard')
+  const [activeExamId, setActiveExamId] = useState<string | null>(null)
+  const [examResult, setExamResult] = useState<ExamResultData | null>(null)
 
-  const handleLoginSuccess = (newToken: string) => {
-    setToken(newToken)
-  }
+  const handleLoginSuccess = (newToken: string) => setToken(newToken)
 
   const handleLogout = () => {
     localStorage.removeItem('sicba_token')
@@ -52,7 +60,23 @@ export default function App() {
     setToken(null)
   }
 
-  // ─── PANTALLA DE LOGIN ──────────────────────────────────────────────
+  const handleEnterExam = (examId: string) => {
+    setActiveExamId(examId)
+    setCurrentPage('exam-room')
+  }
+
+  const handleExamFinished = (result: ExamResultData) => {
+    setExamResult(result)
+    setCurrentPage('exam-result')
+  }
+
+  const handleReturnFromResult = () => {
+    setExamResult(null)
+    setActiveExamId(null)
+    setCurrentPage('exams')
+  }
+
+  // ─── PANTALLA DE LOGIN ────────────────────────────────────────────────
   if (!token) {
     return (
       <TooltipProvider>
@@ -65,15 +89,51 @@ export default function App() {
     )
   }
 
-  // ─── DASHBOARD PRINCIPAL ────────────────────────────────────────────
+  // ─── SALA DE EXAMEN (pantalla completa sin sidebar) ───────────────────
+  if (currentPage === 'exam-room' && activeExamId) {
+    return (
+      <TooltipProvider>
+        <div className="min-h-svh bg-background">
+          <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4">
+            <span className="text-sm font-medium">SICBA — Examen en Curso</span>
+            <div className="ml-auto">
+              <Button variant="ghost" size="sm" onClick={() => { setCurrentPage('exams'); setActiveExamId(null) }}>
+                Salir del examen
+              </Button>
+            </div>
+          </header>
+          <ExamRoom examId={activeExamId} onFinished={handleExamFinished} />
+        </div>
+      </TooltipProvider>
+    )
+  }
+
+  // ─── RESULTADO DEL EXAMEN ─────────────────────────────────────────────
+  if (currentPage === 'exam-result' && examResult) {
+    return (
+      <TooltipProvider>
+        <div className="min-h-svh bg-background">
+          <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4">
+            <span className="text-sm font-medium">SICBA — Resultados</span>
+          </header>
+          <ExamResult
+            score={examResult.score}
+            correctCount={examResult.correctCount}
+            totalQuestions={examResult.totalQuestions}
+            onReturnToDashboard={handleReturnFromResult}
+          />
+        </div>
+      </TooltipProvider>
+    )
+  }
+
+  // ─── DASHBOARD PRINCIPAL ──────────────────────────────────────────────
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
-        return <DashboardHome />
-      case 'questions':
-        return <QuestionsAdmin />
-      default:
-        return <PlaceholderPage page={currentPage} />
+      case 'dashboard': return <DashboardHome />
+      case 'questions': return <QuestionsAdmin />
+      case 'exams': return <ExamManager onEnterExam={handleEnterExam} />
+      default: return <PlaceholderPage page={currentPage} />
     }
   }
 
@@ -86,7 +146,6 @@ export default function App() {
           onLogout={handleLogout}
         />
         <SidebarInset>
-          {/* Header sticky */}
           <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -105,7 +164,6 @@ export default function App() {
             </div>
           </header>
 
-          {/* Page content */}
           <main className="flex flex-1 flex-col">
             {renderPage()}
           </main>
