@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { ClockIcon, CheckCircle2Icon, ChevronRightIcon, SendIcon, Loader2Icon } from 'lucide-react'
-import { cn } from 'cn'
+import { cn } from '@/lib/utils'
 
 interface Option {
   id: string
@@ -69,7 +69,8 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
           data.timeLimit * 60
         )
         setTimeLeft(Math.max(0, remaining))
-      } catch {
+      } catch (err) {
+        console.error('Error al iniciar examen:', err)
         setError('No se pudo conectar con el servidor. Verifica que el backend esté activo.')
       } finally {
         setLoading(false)

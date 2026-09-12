@@ -284,7 +284,11 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                           <Button size="sm" onClick={() => onEnterExam?.(exam.id)}>Ingresar</Button>
                         )}
                         {isAdmin && (
-                          <Button size="sm" variant="ghost" onClick={() => onEnterExam?.(exam.id)}>Ver</Button>
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={`#exam-${exam.id}`} onClick={(e) => e.preventDefault()}>
+                              {exam._count.participations} participantes
+                            </a>
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
