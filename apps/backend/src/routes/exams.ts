@@ -21,7 +21,8 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 // ─── POST /api/exams — Crear Examen (Admin/Maestro) ─────────────────────────
 router.post('/', requireAuth, async (req: Request, res: Response) => {
-  const { role, userId } = (req as any).user;
+  // NOTA: req.user.id (no userId) — así lo define auth.middleware.ts
+  const { role, id: creatorId } = (req as any).user;
 
   if (role !== 'ADMIN' && role !== 'MAESTRO') {
     return res.status(403).json({ error: 'Solo administradores y maestros pueden crear exámenes.' });
@@ -39,7 +40,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         title,
         description,
         subjectId,
-        creatorId: userId as string,
+        creatorId: creatorId as string,
         timeLimit: Number(timeLimit),
         startTime: new Date(startTime),
         endTime: new Date(endTime),
@@ -91,7 +92,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
  * 4. NUNCA revela qué opción es la correcta (isCorrect se omite).
  */
 router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
-  const { userId } = (req as any).user;
+  const { id: studentId } = (req as any).user;
   const examId = req.params['id'] as string;
 
   try {
@@ -121,14 +122,14 @@ router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
 
     // Recuperar o crear la Participation (idempotente)
     let participation = await prisma.participation.findUnique({
-      where: { examId_studentId: { examId, studentId: userId as string } },
+      where: { examId_studentId: { examId, studentId } },
     });
 
     if (!participation) {
       participation = await prisma.participation.create({
         data: {
           examId,
-          studentId: userId as string,
+          studentId,
           status: 'IN_PROGRESS',
           startedAt: new Date(),
         },
@@ -167,7 +168,7 @@ router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
  * no haya expirado para evitar manipulación del cliente.
  */
 router.post('/:id/answer', requireAuth, async (req: Request, res: Response) => {
-  const { userId } = (req as any).user;
+  const { id: studentId } = (req as any).user;
   const examId = req.params['id'] as string;
   const { questionId, selectedOptionId } = req.body;
 
@@ -183,7 +184,7 @@ router.post('/:id/answer', requireAuth, async (req: Request, res: Response) => {
     }
 
     const participation = await prisma.participation.findUnique({
-      where: { examId_studentId: { examId, studentId: userId as string } },
+      where: { examId_studentId: { examId, studentId } },
     });
 
     if (!participation) return res.status(404).json({ error: 'No has iniciado este examen.' });
@@ -211,12 +212,12 @@ router.post('/:id/answer', requireAuth, async (req: Request, res: Response) => {
  * imposible falsificar el puntaje desde el cliente.
  */
 router.post('/:id/submit', requireAuth, async (req: Request, res: Response) => {
-  const { userId } = (req as any).user;
+  const { id: studentId } = (req as any).user;
   const examId = req.params['id'] as string;
 
   try {
     const participation = await prisma.participation.findUnique({
-      where: { examId_studentId: { examId, studentId: userId as string } },
+      where: { examId_studentId: { examId, studentId } },
       include: {
         answers: true,
         exam: {
