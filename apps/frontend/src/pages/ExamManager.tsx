@@ -14,11 +14,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import {
-  PlusCircleIcon, ClipboardListIcon, Users2Icon, BookOpenIcon, Loader2Icon, CopyIcon, CheckIcon,
+  PlusCircleIcon, ClipboardListIcon, Users2Icon, BookOpenIcon, Loader2Icon, CopyIcon, CheckIcon, TrashIcon,
 } from 'lucide-react'
 import { DateTimePicker } from '@/components/date-time-picker'
 
@@ -196,6 +197,25 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
     finally { setCreating(false) }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este examen? Esta acción no se puede deshacer.')) return
+    
+    try {
+      const res = await fetch(`${API}/api/exams/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('sicba_token')}` }
+      })
+      if (res.ok) {
+        loadExams()
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Error al eliminar el examen.')
+      }
+    } catch {
+      alert('Error de conexión al intentar eliminar.')
+    }
+  }
+
   const isAdmin = role === 'ADMIN' || role === 'MAESTRO'
 
   return (
@@ -284,11 +304,16 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                           <Button size="sm" onClick={() => onEnterExam?.(exam.id)}>Ingresar</Button>
                         )}
                         {isAdmin && (
-                          <Button size="sm" variant="outline" asChild>
-                            <a href={`#exam-${exam.id}`} onClick={(e) => e.preventDefault()}>
-                              {exam._count.participations} participantes
-                            </a>
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="outline" asChild>
+                              <a href={`#exam-${exam.id}`} onClick={(e) => e.preventDefault()}>
+                                {exam._count.participations} participantes
+                              </a>
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDelete(exam.id)}>
+                              <TrashIcon className="size-4" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>

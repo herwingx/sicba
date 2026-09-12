@@ -274,4 +274,28 @@ router.post('/:id/submit', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ─── DELETE /api/exams/:id — Borrar Examen (Admin/Maestro) ──────────────────
+router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
+  const { role } = (req as any).user;
+  const examId = req.params['id'] as string;
+
+  if (role !== 'ADMIN' && role !== 'MAESTRO') {
+    return res.status(403).json({ error: 'Solo administradores pueden borrar exámenes.' });
+  }
+
+  try {
+    const exam = await prisma.exam.findUnique({ where: { id: examId } });
+    if (!exam) return res.status(404).json({ error: 'Examen no encontrado.' });
+
+    // Gracias a onDelete: Cascade en Prisma, borrar el examen borra las ExamQuestion.
+    // También borrará las participaciones si estuvieran en Cascade, pero chequeemos.
+    await prisma.exam.delete({ where: { id: examId } });
+
+    return res.json({ message: 'Examen eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al borrar examen:', error);
+    return res.status(500).json({ error: 'Error interno al borrar el examen.' });
+  }
+});
+
 export default router;

@@ -34,6 +34,9 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }: AppSidebarProps) {
+  const role = typeof window !== 'undefined' ? localStorage.getItem('sicba_role') : null;
+  const isAdmin = role === 'ADMIN' || role === 'MAESTRO';
+
   const navMain = [
     {
       title: "Panel Principal",
@@ -42,13 +45,13 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }
       onClick: () => onNavigate?.("dashboard"),
       isActive: currentPage === "dashboard",
     },
-    {
+    ...(isAdmin ? [{
       title: "Banco de Reactivos",
       url: "#",
       icon: <BookOpenIcon />,
       onClick: () => onNavigate?.("questions"),
       isActive: currentPage === "questions",
-    },
+    }] : []),
     {
       title: "Exámenes",
       url: "#",
@@ -56,27 +59,29 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }
       onClick: () => onNavigate?.("exams"),
       isActive: currentPage === "exams",
     },
-    {
-      title: "Alumnos",
-      url: "#",
-      icon: <GraduationCapIcon />,
-      onClick: () => onNavigate?.("students"),
-      isActive: currentPage === "students",
-    },
-    {
-      title: "Usuarios del Sistema",
-      url: "#",
-      icon: <UsersIcon />,
-      onClick: () => onNavigate?.("users"),
-      isActive: currentPage === "users",
-    },
-    {
-      title: "Reportes",
-      url: "#",
-      icon: <BarChartIcon />,
-      onClick: () => onNavigate?.("reports"),
-      isActive: currentPage === "reports",
-    },
+    ...(isAdmin ? [
+      {
+        title: "Alumnos",
+        url: "#",
+        icon: <GraduationCapIcon />,
+        onClick: () => onNavigate?.("students"),
+        isActive: currentPage === "students",
+      },
+      {
+        title: "Usuarios del Sistema",
+        url: "#",
+        icon: <UsersIcon />,
+        onClick: () => onNavigate?.("users"),
+        isActive: currentPage === "users",
+      },
+      {
+        title: "Reportes",
+        url: "#",
+        icon: <BarChartIcon />,
+        onClick: () => onNavigate?.("reports"),
+        isActive: currentPage === "reports",
+      }
+    ] : [])
   ]
 
   const navSecondary = [
@@ -98,9 +103,9 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }
   ]
 
   const defaultUser = {
-    name: user?.name ?? "Administrador",
-    email: user?.email ?? "admin@escuela.edu.mx",
-    avatar: user?.avatar ?? "/avatars/admin.jpg",
+    name: user?.name ?? (isAdmin ? "Administrador" : "Alumno"),
+    email: user?.email ?? (isAdmin ? "admin@escuela.edu.mx" : "alumno@escuela.edu.mx"),
+    avatar: user?.avatar ?? (isAdmin ? "/avatars/admin.jpg" : "/avatars/student.jpg"),
   }
 
   return (
