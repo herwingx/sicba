@@ -79,6 +79,11 @@ export function QuestionsAdmin() {
     if (file) setSelectedFile(file)
   }
 
+  /**
+   * Flujo de subida masiva de reactivos:
+   * Se hace uso de `FormData` para poder enviar archivos binarios (.xlsx, .csv) al servidor
+   * mediante un request de tipo multipart/form-data.
+   */
   const handleBulkUpload = async () => {
     if (!selectedFile) return
     setUploading(true)

@@ -32,10 +32,19 @@ interface ExamResultProps {
   onReturnToDashboard: () => void
 }
 
+/**
+ * Componente que muestra los resultados de un examen.
+ * Incluye una retroalimentación detallada con soporte para fórmulas matemáticas.
+ */
 export function ExamResult({ score, correctCount, totalQuestions, breakdown = [], onReturnToDashboard }: ExamResultProps) {
+  // Índice para controlar el acordeón de la retroalimentación pregunta por pregunta.
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const wrongCount = totalQuestions - correctCount
 
+  /**
+   * Calcula de forma dinámica los estilos (clases CSS) y etiquetas
+   * basándose en la calificación obtenida por el alumno.
+   */
   const getScoreLevel = () => {
     if (score >= 90) return {
       label: '¡Excelente!',
@@ -115,6 +124,11 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
         </CardContent>
       </Card>
 
+      /**
+       * Renderizado del breakdown (desglose de preguntas):
+       * Se utiliza la librería react-latex-next (<Latex>) para renderizar correctamente
+       * expresiones y fórmulas matemáticas dentro del contenido de las preguntas y opciones.
+       */
       {/* Desglose pregunta por pregunta */}
       {breakdown.length > 0 && (
         <div className="w-full flex flex-col gap-2">

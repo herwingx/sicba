@@ -72,7 +72,12 @@ interface ExamManagerProps {
 
 const API = 'http://localhost:3000'
 
+/**
+ * Componente para la gestión y listado de exámenes.
+ * Se adapta según el rol del usuario (Admin/Maestro vs Alumno).
+ */
 export function ExamManager({ onEnterExam }: ExamManagerProps) {
+  // Se obtiene el token y rol para determinar los permisos en la vista (RBAC básico).
   const token = localStorage.getItem('sicba_token')
   const role = localStorage.getItem('sicba_role')
 
@@ -248,6 +253,10 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Obtiene los resultados detallados de un examen específico.
+   * Utilizado exclusivamente por administradores para ver el rendimiento de los alumnos.
+   */
   const loadResults = async (exam: Exam) => {
     setResultsExam(exam)
     setResultsLoading(true)
@@ -266,6 +275,8 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
     }
   }
 
+  // Bandera principal para diferenciar el flujo de creación/administración (admin) 
+  // del flujo de participación (alumno).
   const isAdmin = role === 'ADMIN' || role === 'MAESTRO'
 
   // Truncar contenido de pregunta para mostrar en lista (elimina LaTeX $...$)

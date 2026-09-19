@@ -22,11 +22,20 @@ interface Student {
   createdAt: string
 }
 
+/**
+ * Página de listado de alumnos.
+ * Muestra a los usuarios registrados en el sistema con el rol "ALUMNO".
+ */
 export function StudentsPage() {
   const token = localStorage.getItem('sicba_token')
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState<Student[]>([]) // Estado para almacenar la data obtenida.
+  const [loading, setLoading] = useState(true) // Estado de carga (Loading state) para el UI feedback.
 
+  /**
+   * Fetch inicial de los datos:
+   * Hook useEffect que se dispara al montar el componente para obtener los alumnos del API.
+   * Controla el estado `loading` y atrapa errores silenciosamente para no romper la UI.
+   */
   useEffect(() => {
     const load = async () => {
       try {

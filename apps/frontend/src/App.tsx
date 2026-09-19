@@ -50,9 +50,19 @@ function PlaceholderPage({ page }: { page: Page }) {
   )
 }
 
+/**
+ * Componente principal de la aplicación.
+ * Gestiona el estado global (sesión, navegación y contexto del examen activo).
+ * Implementa un enrutamiento condicional simple basado en el estado `currentPage`.
+ */
 export default function App() {
+  // Estado de sesión hidratado inicialmente desde localStorage para persistencia.
   const [token, setToken] = useState<string | null>(localStorage.getItem('sicba_token'))
+  
+  // Estado de navegación (enrutamiento manual sin react-router para simplificar la arquitectura).
   const [currentPage, setCurrentPage] = useState<Page>('dashboard')
+  
+  // Contexto para el flujo de exámenes.
   const [activeExamId, setActiveExamId] = useState<string | null>(null)
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
 
@@ -80,6 +90,10 @@ export default function App() {
     setCurrentPage('exams')
   }
 
+  /**
+   * Flujo de protección: Si no hay token, el usuario es forzado a la pantalla de Login.
+   * ThemeProvider inyecta clases para el modo claro/oscuro en toda la app.
+   */
   // ─── PANTALLA DE LOGIN ────────────────────────────────────────────────
   if (!token) {
     return (

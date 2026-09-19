@@ -53,6 +53,12 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
   const [resumed, setResumed] = useState(false) // Si el alumno está reanudando
   const participationIdRef = useRef<string>('')
 
+  /**
+   * EXTREMADAMENTE IMPORTANTE:
+   * Evento `beforeunload` para evitar que el usuario cierre accidentalmente la ventana
+   * o recargue la página mientras tiene un examen activo sin entregar.
+   * Ayuda a prevenir la pérdida de estado temporal no sincronizado.
+   */
   // ─── Anti-cierre: advertir al usuario si intenta cerrar el navegador ─────
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -93,6 +99,12 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
         setExamTitle(data.title)
         setQuestions(data.questions)
 
+        /**
+         * Manejo de `savedAnswers` (Reanudación):
+         * Si el usuario experimentó una desconexión o cerró el navegador de manera forzada,
+         * el backend devuelve las respuestas guardadas previamente.
+         * Esto permite poblar el estado local `answers` y continuar donde se quedó.
+         */
         // Reanudar respuestas guardadas si el alumno cerró el navegador
         if (data.savedAnswers && Object.keys(data.savedAnswers).length > 0) {
           setAnswers(data.savedAnswers)
@@ -120,6 +132,12 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     startExam()
   }, [examId, token])
 
+  /**
+   * Lógica del temporizador:
+   * Se utiliza un `setInterval` que decrementa `timeLeft` cada segundo.
+   * Cuando el tiempo llega a 0, se fuerza la entrega automática del examen 
+   * invocando `handleSubmit(true)`.
+   */
   // ─── Temporizador ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (timeLeft <= 0 || loading || submitting) return
