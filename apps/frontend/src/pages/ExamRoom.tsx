@@ -6,9 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { ClockIcon, CheckCircle2Icon, ChevronRightIcon, SendIcon, Loader2Icon } from 'lucide-react'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  ClockIcon, CheckCircle2Icon, ChevronRightIcon, SendIcon, Loader2Icon,
+  ShieldCheckIcon, RotateCcwIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface Option {
   id: string
@@ -24,26 +31,42 @@ interface Question {
 
 interface ExamRoomProps {
   examId: string
-  onFinished: (result: { score: number; correctCount: number; totalQuestions: number }) => void
+  onFinished: (result: { score: number; correctCount: number; totalQuestions: number; breakdown?: any[] }) => void
+  onAlreadySubmitted?: () => void
 }
 
 const API = 'http://localhost:3000'
 
-export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
+export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomProps) {
   const token = localStorage.getItem('sicba_token')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [examTitle, setExamTitle] = useState('')
   const [questions, setQuestions] = useState<Question[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, string>>({}) // questionId → optionId
-  const [timeLeft, setTimeLeft] = useState(0) // segundos
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [timeLeft, setTimeLeft] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resumed, setResumed] = useState(false) // Si el alumno está reanudando
   const participationIdRef = useRef<string>('')
 
-  // Iniciar examen
+  // ─── Anti-cierre: advertir al usuario si intenta cerrar el navegador ─────
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (questions.length > 0 && !submitting) {
+        e.preventDefault()
+        // Mensaje estándar — el navegador lo reemplaza con el suyo propio
+        return 'Tienes un examen en curso. ¿Seguro que quieres salir? Tu progreso parcial está guardado.'
+      }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [questions.length, submitting])
+
+  // ─── Iniciar / reanudar examen ────────────────────────────────────────────
   useEffect(() => {
     const startExam = async () => {
       try {
@@ -53,14 +76,31 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
         })
         const data = await res.json()
 
+        if (res.status === 409 && data.alreadySubmitted) {
+          // El alumno ya entregó este examen
+          setAlreadySubmitted(true)
+          setLoading(false)
+          return
+        }
+
         if (!res.ok) {
           setError(data.error || 'No se pudo iniciar el examen.')
+          setLoading(false)
           return
         }
 
         participationIdRef.current = data.participationId
         setExamTitle(data.title)
         setQuestions(data.questions)
+
+        // Reanudar respuestas guardadas si el alumno cerró el navegador
+        if (data.savedAnswers && Object.keys(data.savedAnswers).length > 0) {
+          setAnswers(data.savedAnswers)
+          setResumed(true)
+          toast.info(`Reanudando examen — ${Object.keys(data.savedAnswers).length} respuestas recuperadas`, {
+            duration: 4000,
+          })
+        }
 
         // Calcular tiempo restante basado en endTime del servidor
         const endTime = new Date(data.endTime).getTime()
@@ -80,16 +120,18 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
     startExam()
   }, [examId, token])
 
-  // Temporizador
+  // ─── Temporizador ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (timeLeft <= 0 || loading || submitting) return
     const interval = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
           clearInterval(interval)
-          handleSubmit(true) // Envío automático al expirar
+          handleSubmit(true)
           return 0
         }
+        if (t === 120) toast.warning('⏰ Quedan 2 minutos')
+        if (t === 60) toast.error('⚠️ Queda 1 minuto — ¡entrega pronto!')
         return t - 1
       })
     }, 1000)
@@ -104,8 +146,6 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
 
   const handleSelectOption = useCallback(async (questionId: string, optionId: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }))
-
-    // Enviar al backend en tiempo real
     try {
       await fetch(`${API}/api/exams/${examId}/answer`, {
         method: 'POST',
@@ -132,17 +172,19 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
       const data = await res.json()
 
       if (res.ok) {
+        window.onbeforeunload = null
         onFinished({
           score: data.score,
           correctCount: data.correctCount,
           totalQuestions: data.totalQuestions,
+          breakdown: data.breakdown ?? [],
         })
       } else {
-        setError(data.error || 'Error al entregar el examen.')
+        toast.error(data.error || 'Error al entregar el examen.')
         setSubmitting(false)
       }
     } catch {
-      setError('No se pudo conectar con el servidor al entregar.')
+      toast.error('No se pudo conectar con el servidor al entregar.')
       setSubmitting(false)
     }
   }
@@ -151,44 +193,84 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
   const answeredCount = Object.keys(answers).length
   const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0
   const isLastQuestion = currentIndex === questions.length - 1
+  const timeWarning = timeLeft < 120
+  const timeDanger = timeLeft < 60
 
-  const timeWarning = timeLeft < 120  // Menos de 2 minutos
-  const timeDanger = timeLeft < 60    // Menos de 1 minuto
-
+  // ─── Pantalla de carga ────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex flex-col gap-4 p-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-48 w-full" />
-        <div className="grid grid-cols-2 gap-3">
-          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+      <div className="flex flex-col items-center justify-center gap-6 p-10 min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+            <ShieldCheckIcon className="size-6 text-primary" />
+          </div>
+          <p className="font-semibold">Preparando tu examen...</p>
+          <p className="text-sm text-muted-foreground">Cargando preguntas y verificando sesión</p>
+        </div>
+        <div className="w-full max-w-md flex flex-col gap-3">
+          <Skeleton className="h-8 w-3/4 mx-auto" />
+          <Skeleton className="h-32 w-full" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
+          </div>
         </div>
       </div>
     )
   }
 
+  // ─── Ya entregó este examen ───────────────────────────────────────────────
+  if (alreadySubmitted) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 p-10 min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3 text-center max-w-md">
+          <div className="size-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle2Icon className="size-8 text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-xl font-bold">Ya entregaste este examen</h2>
+          <p className="text-sm text-muted-foreground">
+            Tu examen ya fue calificado. Puedes ver tus resultados en la sección de Exámenes.
+          </p>
+          <Button onClick={onAlreadySubmitted} className="mt-2">
+            <RotateCcwIcon data-icon="inline-start" />
+            Volver a Exámenes
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── Error general ────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-10 gap-4">
-        <div className="rounded-md bg-destructive/10 border border-destructive/30 px-6 py-4 text-destructive text-center max-w-md">
-          <p className="font-semibold mb-1">Error al cargar el examen</p>
-          <p className="text-sm">{error}</p>
+      <div className="flex flex-col items-center justify-center p-10 gap-4 min-h-[60vh]">
+        <div className="rounded-lg bg-destructive/10 border border-destructive/30 px-6 py-5 text-destructive text-center max-w-md w-full">
+          <p className="font-semibold mb-1">No se pudo cargar el examen</p>
+          <p className="text-sm opacity-80">{error}</p>
         </div>
       </div>
     )
   }
 
+  // ─── Sala de examen ───────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 p-4 md:p-6 max-w-3xl mx-auto w-full">
+      {/* Banner de reanudación */}
+      {resumed && (
+        <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-4 py-2.5 text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
+          <RotateCcwIcon className="size-4 shrink-0" />
+          Examen reanudado — tus respuestas anteriores fueron recuperadas.
+        </div>
+      )}
+
       {/* Header del examen */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-tight truncate">{examTitle}</h1>
           {/* Temporizador */}
           <div className={cn(
-            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-sm font-semibold transition-colors',
+            'flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-sm font-semibold transition-colors shrink-0 ml-2',
             timeDanger ? 'bg-destructive text-destructive-foreground animate-pulse' :
-            timeWarning ? 'bg-orange-100 text-orange-700 border border-orange-300' :
+            timeWarning ? 'bg-orange-100 text-orange-700 border border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700' :
             'bg-muted text-muted-foreground'
           )}>
             <ClockIcon className="size-4" />
@@ -224,8 +306,7 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
           <CardContent className="flex flex-col gap-3">
             {currentQuestion.options.map((opt, i) => {
               const selected = answers[currentQuestion.questionId] === opt.id
-              const letter = String.fromCharCode(65 + i) // A, B, C, D
-
+              const letter = String.fromCharCode(65 + i)
               return (
                 <button
                   key={opt.id}
@@ -264,7 +345,7 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
           Anterior
         </Button>
 
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap justify-center">
           {questions.map((q, i) => (
             <button
               key={q.questionId}
@@ -272,7 +353,7 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
               className={cn(
                 'size-7 rounded text-xs font-medium transition-colors',
                 i === currentIndex ? 'bg-primary text-primary-foreground' :
-                answers[q.questionId] ? 'bg-green-100 text-green-700 border border-green-300' :
+                answers[q.questionId] ? 'bg-green-100 text-green-700 border border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700' :
                 'bg-muted text-muted-foreground hover:bg-accent'
               )}
             >
@@ -307,7 +388,12 @@ export function ExamRoom({ examId, onFinished }: ExamRoomProps) {
             <AlertDialogTitle>¿Entregar el examen?</AlertDialogTitle>
             <AlertDialogDescription>
               Has respondido <strong>{answeredCount}</strong> de <strong>{questions.length}</strong> preguntas.
-              Una vez entregado no podrás modificar tus respuestas.
+              {answeredCount < questions.length && (
+                <span className="block mt-1 text-orange-600 dark:text-orange-400 font-medium">
+                  ⚠️ Tienes {questions.length - answeredCount} pregunta(s) sin responder.
+                </span>
+              )}
+              <span className="block mt-1">Una vez entregado no podrás modificar tus respuestas.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

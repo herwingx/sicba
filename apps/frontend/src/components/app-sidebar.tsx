@@ -16,6 +16,7 @@ import {
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Sidebar,
   SidebarContent,
@@ -130,6 +131,9 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
+        <div className="px-2 pb-1">
+          <ThemeToggle />
+        </div>
         <NavUser user={defaultUser} onLogout={onLogout} />
       </SidebarFooter>
     </Sidebar>

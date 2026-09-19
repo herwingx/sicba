@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ThemeProvider } from 'next-themes'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -6,6 +7,7 @@ import {
   Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
 import { LogOutIcon } from 'lucide-react'
 
 import { LoginForm } from '@/components/login-form'
@@ -15,6 +17,7 @@ import { QuestionsAdmin } from '@/pages/QuestionsAdmin'
 import { ExamManager } from '@/pages/ExamManager'
 import { ExamRoom } from '@/pages/ExamRoom'
 import { ExamResult } from '@/pages/ExamResult'
+import { StudentsPage } from '@/pages/StudentsPage'
 
 type Page = 'dashboard' | 'questions' | 'exams' | 'exam-room' | 'exam-result' | 'students' | 'users' | 'reports'
 
@@ -33,6 +36,7 @@ interface ExamResultData {
   score: number
   correctCount: number
   totalQuestions: number
+  breakdown?: any[]
 }
 
 function PlaceholderPage({ page }: { page: Page }) {
@@ -79,51 +83,69 @@ export default function App() {
   // ─── PANTALLA DE LOGIN ────────────────────────────────────────────────
   if (!token) {
     return (
-      <TooltipProvider>
-        <div className="min-h-svh flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-          <div className="w-full max-w-4xl">
-            <LoginForm onLoginSuccess={handleLoginSuccess} />
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <div className="min-h-svh flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900 p-4">
+            <div className="w-full max-w-4xl">
+              <LoginForm onLoginSuccess={handleLoginSuccess} />
+            </div>
           </div>
-        </div>
-      </TooltipProvider>
+          <Toaster position="bottom-right" richColors />
+        </TooltipProvider>
+      </ThemeProvider>
     )
   }
 
-  // ─── SALA DE EXAMEN (pantalla completa sin sidebar) ───────────────────
+  // ─── SALA DE EXAMEN (pantalla completa sin sidebar, sin botón salir) ──
   if (currentPage === 'exam-room' && activeExamId) {
     return (
-      <TooltipProvider>
-        <div className="min-h-svh bg-background">
-          <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4">
-            <span className="text-sm font-medium">SICBA — Examen en Curso</span>
-            <div className="ml-auto">
-              <Button variant="ghost" size="sm" onClick={() => { setCurrentPage('exams'); setActiveExamId(null) }}>
-                Salir del examen
-              </Button>
-            </div>
-          </header>
-          <ExamRoom examId={activeExamId} onFinished={handleExamFinished} />
-        </div>
-      </TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <div className="min-h-svh bg-background">
+            <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4">
+              <div className="size-5 rounded bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0">
+                S
+              </div>
+              <span className="text-sm font-semibold">SICBA — Examen en Curso</span>
+              <span className="ml-2 text-xs text-muted-foreground hidden sm:inline">
+                No cierres esta ventana hasta terminar
+              </span>
+            </header>
+            <ExamRoom
+              examId={activeExamId}
+              onFinished={handleExamFinished}
+              onAlreadySubmitted={handleReturnFromResult}
+            />
+          </div>
+          <Toaster position="bottom-right" richColors />
+        </TooltipProvider>
+      </ThemeProvider>
     )
   }
 
   // ─── RESULTADO DEL EXAMEN ─────────────────────────────────────────────
   if (currentPage === 'exam-result' && examResult) {
     return (
-      <TooltipProvider>
-        <div className="min-h-svh bg-background">
-          <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4">
-            <span className="text-sm font-medium">SICBA — Resultados</span>
-          </header>
-          <ExamResult
-            score={examResult.score}
-            correctCount={examResult.correctCount}
-            totalQuestions={examResult.totalQuestions}
-            onReturnToDashboard={handleReturnFromResult}
-          />
-        </div>
-      </TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <div className="min-h-svh bg-background">
+            <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background/95 backdrop-blur px-4">
+              <div className="size-5 rounded bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0">
+                S
+              </div>
+              <span className="text-sm font-semibold">SICBA — Resultados</span>
+            </header>
+            <ExamResult
+              score={examResult.score}
+              correctCount={examResult.correctCount}
+              totalQuestions={examResult.totalQuestions}
+              breakdown={examResult.breakdown}
+              onReturnToDashboard={handleReturnFromResult}
+            />
+          </div>
+          <Toaster position="bottom-right" richColors />
+        </TooltipProvider>
+      </ThemeProvider>
     )
   }
 
@@ -133,42 +155,46 @@ export default function App() {
       case 'dashboard': return <DashboardHome />
       case 'questions': return <QuestionsAdmin />
       case 'exams': return <ExamManager onEnterExam={handleEnterExam} />
+      case 'students': return <StudentsPage />
       default: return <PlaceholderPage page={currentPage} />
     }
   }
 
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <AppSidebar
-          onNavigate={(page) => setCurrentPage(page as Page)}
-          currentPage={currentPage}
-          onLogout={handleLogout}
-        />
-        <SidebarInset>
-          <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{PAGE_LABELS[currentPage]}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-            <div className="ml-auto">
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOutIcon data-icon="inline-start" className="size-4" />
-                Cerrar sesión
-              </Button>
-            </div>
-          </header>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <SidebarProvider>
+          <AppSidebar
+            onNavigate={(page) => setCurrentPage(page as Page)}
+            currentPage={currentPage}
+            onLogout={handleLogout}
+          />
+          <SidebarInset>
+            <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{PAGE_LABELS[currentPage]}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              <div className="ml-auto">
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOutIcon data-icon="inline-start" className="size-4" />
+                  Cerrar sesión
+                </Button>
+              </div>
+            </header>
 
-          <main className="flex flex-1 flex-col">
-            {renderPage()}
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
-    </TooltipProvider>
+            <main className="flex flex-1 flex-col">
+              {renderPage()}
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
+        <Toaster position="bottom-right" richColors />
+      </TooltipProvider>
+    </ThemeProvider>
   )
 }
