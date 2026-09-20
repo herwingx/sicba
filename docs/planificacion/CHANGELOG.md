@@ -20,6 +20,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - **ThemeToggle Fix**: Se reemplazó el uso de `theme` por `resolvedTheme` (`next-themes`) para eliminar un bug donde el primer click del toggle fallaba por mismatch de hidratación. Además, las transiciones tienen mejores animaciones (`rotate`, `scale`, `fade`).
 - **Sidebar**: Eliminado el botón duplicado de "Cerrar sesión" en el header principal, conservando exclusivamente el del perfil inferior del sidebar para mayor limpieza visual.
 
+### Correcciones (Bugfixes)
+- **Filtro del Badge de Exámenes**: Se corrigió la lógica en `App.tsx` para que el contador rojo notifique también sobre los exámenes en estado "Próximamente" (futuros), y no solo los "En vivo".
+- **Color de Notificación en Sidebar**: Se modificó la clase de color del badge a `bg-destructive text-destructive-foreground` para asegurar que destaque como una "burbuja roja" real y mantenga excelente contraste y legibilidad tanto en modo claro como en oscuro.
+
 ---
 
 ## [Sábado 6 - Tarde] — 2026-09-19 ✅ COMPLETO
