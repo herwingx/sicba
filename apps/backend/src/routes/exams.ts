@@ -340,7 +340,7 @@ router.patch('/:id/publish', requireAuth, async (req: Request, res: Response) =>
     // Generar código de acceso si se activa y no tiene
     let accessCode = exam.accessCode;
     if (!exam.isActive && !accessCode) {
-      accessCode = 'TEC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     }
 
     const updated = await prisma.exam.update({

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
@@ -75,6 +75,13 @@ export default function App() {
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
   // Bloqueo de navegación cuando el alumno está dentro del examen
   const [examInProgress, setExamInProgress] = useState(false)
+  const examInProgressRef = useRef(examInProgress)
+  
+  // Sincronizar el ref con el estado para que el listener siempre tenga el valor actual
+  useEffect(() => {
+    examInProgressRef.current = examInProgress
+  }, [examInProgress])
+
   const [leaveAlertOpen, setLeaveAlertOpen] = useState(false)
   const [pendingHash, setPendingHash] = useState<Page | null>(null)
 
@@ -85,7 +92,7 @@ export default function App() {
 
       // Si el alumno está en el examen e intenta salir hacia otra vista:
       // revertimos el hash y mostramos el AlertDialog.
-      if (examInProgress && newHash !== 'exam-room') {
+      if (examInProgressRef.current && newHash !== 'exam-room') {
         // Revertir el hash al estado del examen para evitar salir
         window.location.hash = 'exam-room'
         setPendingHash(newHash || 'exams')
@@ -192,6 +199,7 @@ export default function App() {
 
   const handleExamFinished = (result: ExamResultData) => {
     setExamInProgress(false)  // Desbloquear navegación al entregar
+    examInProgressRef.current = false // Actualizar ref sincrónicamente para prevenir race condition del router
     setExamResult(result)
     navigateTo('exam-result')
   }

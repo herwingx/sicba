@@ -13,7 +13,12 @@ const upload = multer({ storage: multer.memoryStorage() });
  */
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
+    const { subjectId } = req.query;
+    
+    const whereClause = subjectId ? { subjectId: String(subjectId) } : {};
+
     const questions = await prisma.question.findMany({
+      where: whereClause,
       include: {
         subject: true,
         options: true

@@ -617,22 +617,18 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
           </DialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
               <InputOTP 
-                maxLength={7} 
+                maxLength={6} 
                 value={enrollCode} 
                 onChange={(v) => setEnrollCode(v.toUpperCase())}
-                onKeyDown={(e) => e.key === 'Enter' && enrollCode.length === 7 && handleEnroll()}
+                onKeyDown={(e) => e.key === 'Enter' && enrollCode.length === 6 && handleEnroll()}
               >
                 <InputOTPGroup>
                   <InputOTPSlot index={0} />
                   <InputOTPSlot index={1} />
                   <InputOTPSlot index={2} />
-                </InputOTPGroup>
-                <InputOTPSeparator />
-                <InputOTPGroup>
                   <InputOTPSlot index={3} />
                   <InputOTPSlot index={4} />
                   <InputOTPSlot index={5} />
-                  <InputOTPSlot index={6} />
                 </InputOTPGroup>
               </InputOTP>
               {enrollError && <p className="text-sm text-destructive">{enrollError}</p>}
