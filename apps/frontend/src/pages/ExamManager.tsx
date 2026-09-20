@@ -25,6 +25,7 @@ import {
   PlusCircleIcon, ClipboardListIcon, Users2Icon, BookOpenIcon,
   Loader2Icon, CheckIcon, TrashIcon, PlayCircleIcon, PauseCircleIcon,
   BarChart2Icon, TrophyIcon, CheckCircle2Icon, PencilIcon, AlertCircleIcon,
+  RefreshCwIcon,
 } from 'lucide-react'
 import { DateTimePicker } from '@/components/date-time-picker'
 import { Separator } from '@/components/ui/separator'
@@ -345,12 +346,18 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
             {isAdmin ? 'Gestiona y crea concursos de Ciencias Básicas' : 'Concursos disponibles para participar'}
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => { setDialogOpen(true); loadSubjects() }}>
-            <PlusCircleIcon data-icon="inline-start" />
-            Crear Examen
+        <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          <Button variant="outline" onClick={loadExams} disabled={loading} title="Actualizar lista">
+            <RefreshCwIcon className={`size-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
           </Button>
-        )}
+          {isAdmin && (
+            <Button onClick={() => { setDialogOpen(true); loadSubjects() }}>
+              <PlusCircleIcon data-icon="inline-start" />
+              Crear Examen
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabla */}
@@ -729,18 +736,18 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
 
             {/* Stats rápidas */}
             {!resultsLoading && examResults.length > 0 && (
-              <div className="flex gap-3 mt-4">
-                <div className="flex-1 rounded-lg bg-background/60 border px-3 py-2 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                <div className="rounded-lg bg-background/60 border px-3 py-2 text-center">
                   <p className="text-2xl font-bold text-foreground">{examResults.length}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Participantes</p>
                 </div>
-                <div className="flex-1 rounded-lg bg-background/60 border px-3 py-2 text-center">
+                <div className="rounded-lg bg-background/60 border px-3 py-2 text-center">
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {examResults.filter(r => r.status === 'SUBMITTED').length}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Entregados</p>
                 </div>
-                <div className="flex-1 rounded-lg bg-background/60 border px-3 py-2 text-center">
+                <div className="rounded-lg bg-background/60 border px-3 py-2 text-center">
                   <p className="text-2xl font-bold text-foreground">
                     {examResults.filter(r => r.score !== null).length > 0
                       ? (examResults.filter(r => r.score !== null).reduce((a, r) => a + r.score!, 0) /
@@ -749,7 +756,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Promedio</p>
                 </div>
-                <div className="flex-1 rounded-lg bg-background/60 border px-3 py-2 text-center">
+                <div className="rounded-lg bg-background/60 border px-3 py-2 text-center">
                   <p className="text-2xl font-bold text-amber-500">
                     {examResults.find(r => r.rank === 1)?.score?.toFixed(1) ?? '—'}
                     {examResults.find(r => r.rank === 1)?.score !== undefined && '%'}
