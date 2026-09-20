@@ -12,18 +12,61 @@ import { Button } from "@/components/ui/button"
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
 
+  const toggleTheme = (e: React.MouseEvent) => {
+    const isDark = theme === 'dark'
+    const newTheme = isDark ? 'light' : 'dark'
+
+    // Cambio instantáneo si no hay soporte
+    if (!document.startViewTransition) {
+      setTheme(newTheme)
+      return
+    }
+
+    const x = e.clientX
+    const y = e.clientY
+    const endRadius = Math.hypot(
+      Math.max(x, innerWidth - x),
+      Math.max(y, innerHeight - y)
+    )
+
+    const transition = document.startViewTransition(() => {
+      setTheme(newTheme)
+    })
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ]
+      document.documentElement.animate(
+        {
+          clipPath: isDark ? [...clipPath].reverse() : clipPath,
+        },
+        {
+          duration: 400,
+          easing: 'ease-in-out',
+          pseudoElement: isDark
+            ? '::view-transition-old(root)'
+            : '::view-transition-new(root)',
+        }
+      )
+    })
+  }
+
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="w-full justify-start gap-2"
+      onClick={toggleTheme}
+      className="w-full justify-start gap-3 relative overflow-hidden group hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
       title="Cambiar tema"
     >
-      <SunIcon className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <MoonIcon className="absolute size-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      <span className="dark:hidden">Modo oscuro</span>
-      <span className="hidden dark:inline">Modo claro</span>
+      <div className="relative flex items-center justify-center size-4">
+        <SunIcon className="absolute size-5 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500" />
+        <MoonIcon className="absolute size-4 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-400" />
+      </div>
+      <span className="dark:hidden font-medium text-muted-foreground group-hover:text-foreground transition-colors">Modo oscuro</span>
+      <span className="hidden dark:inline font-medium text-muted-foreground group-hover:text-foreground transition-colors">Modo claro</span>
     </Button>
   )
 }

@@ -211,7 +211,7 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
                               </Badge>
                             )}
                             {isCorrectOpt && (
-                              <Badge className="ml-auto shrink-0 text-xs bg-green-600 text-white">
+                              <Badge className="ml-auto shrink-0 text-xs bg-green-600 dark:bg-green-700 text-white">
                                 Correcta
                               </Badge>
                             )}

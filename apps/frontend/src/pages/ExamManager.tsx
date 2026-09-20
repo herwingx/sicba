@@ -359,7 +359,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                       <TableCell className="text-center text-sm">{exam._count.participations}</TableCell>
                       <TableCell className="text-sm">{exam.timeLimit} min</TableCell>
                       <TableCell>
-                        {isLive && <Badge className="bg-green-600 text-white">En vivo</Badge>}
+                        {isLive && <Badge className="bg-green-600 dark:bg-green-700 text-white">En vivo</Badge>}
                         {isUpcoming && <Badge variant="secondary">Próximamente</Badge>}
                         {isDraft && <Badge variant="outline" className="text-muted-foreground">Borrador</Badge>}
                         {isFinished && <Badge variant="outline">Finalizado</Badge>}

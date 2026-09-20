@@ -384,7 +384,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
           <Button
             onClick={() => setConfirmOpen(true)}
             disabled={submitting}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
           >
             {submitting
               ? <><Loader2Icon data-icon="inline-start" className="animate-spin" />Entregando...</>

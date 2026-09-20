@@ -177,7 +177,7 @@ export function QuestionsAdmin() {
 
           {/* Feedback */}
           {uploadResult && (
-            <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+            <div className="flex items-center gap-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-400">
               <CheckCircle2Icon className="size-4 shrink-0" />
               {uploadResult}
             </div>
