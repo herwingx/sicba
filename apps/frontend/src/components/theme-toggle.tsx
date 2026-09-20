@@ -1,22 +1,30 @@
 import { MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 
 /**
  * Componente ThemeToggle para alternar el tema visual de la aplicación.
- * Utiliza el hook `useTheme` de `next-themes` para interactuar con el `ThemeProvider` global
- * y mutar el estado del tema (claro/oscuro), inyectando las clases correspondientes en el DOM.
- * 
- * @returns {JSX.Element} Botón para cambiar el modo de color.
+ *
+ * Utiliza `resolvedTheme` (no `theme`) para evitar el bug de primer clic donde
+ * `theme` puede ser `undefined` durante la hidratación del cliente (SSR/CSR mismatch).
+ * Implementa la View Transitions API para el efecto de onda expansiva.
+ *
+ * @returns {JSX.Element} Botón animado para cambiar el modo de color.
  */
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  // resolvedTheme siempre devuelve 'light' o 'dark' incluso antes de la hidratación
+  const { resolvedTheme, setTheme } = useTheme()
+
+  // Montar-gate: evitar flash de iconos incorrecto antes de que next-themes hidrate
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const toggleTheme = (e: React.MouseEvent) => {
-    const isDark = theme === 'dark'
+    const isDark = resolvedTheme === 'dark'
     const newTheme = isDark ? 'light' : 'dark'
 
-    // Cambio instantáneo si no hay soporte
+    // Fallback sin animación para navegadores sin soporte
     if (!document.startViewTransition) {
       setTheme(newTheme)
       return
@@ -33,18 +41,17 @@ export function ThemeToggle() {
       setTheme(newTheme)
     })
 
+    // La onda "nace" del cursor y se expande hasta cubrir toda la pantalla
     transition.ready.then(() => {
       const clipPath = [
         `circle(0px at ${x}px ${y}px)`,
         `circle(${endRadius}px at ${x}px ${y}px)`,
       ]
       document.documentElement.animate(
+        { clipPath: isDark ? [...clipPath].reverse() : clipPath },
         {
-          clipPath: isDark ? [...clipPath].reverse() : clipPath,
-        },
-        {
-          duration: 400,
-          easing: 'ease-in-out',
+          duration: 420,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
           pseudoElement: isDark
             ? '::view-transition-old(root)'
             : '::view-transition-new(root)',
@@ -53,20 +60,48 @@ export function ThemeToggle() {
     })
   }
 
+  // Placeholder mientras hidrata para evitar CLS
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="sm" className="w-full justify-start gap-3 opacity-0" disabled>
+        <div className="size-4" />
+        <span>Modo oscuro</span>
+      </Button>
+    )
+  }
+
+  const isDark = resolvedTheme === 'dark'
+
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={toggleTheme}
       className="w-full justify-start gap-3 relative overflow-hidden group hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors"
-      title="Cambiar tema"
+      title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
     >
-      <div className="relative flex items-center justify-center size-4">
-        <SunIcon className="absolute size-5 rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-amber-500" />
-        <MoonIcon className="absolute size-4 rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-indigo-400" />
+      {/* Contenedor del ícono con animación de rotación y escala */}
+      <div className="relative flex items-center justify-center size-5 shrink-0">
+        <SunIcon
+          className={`absolute size-5 transition-all duration-300 text-amber-500
+            ${isDark ? '-rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`}
+        />
+        <MoonIcon
+          className={`absolute size-4 transition-all duration-300 text-indigo-400
+            ${isDark ? 'rotate-0 scale-100 opacity-100' : 'rotate-90 scale-0 opacity-0'}`}
+        />
       </div>
-      <span className="dark:hidden font-medium text-muted-foreground group-hover:text-foreground transition-colors">Modo oscuro</span>
-      <span className="hidden dark:inline font-medium text-muted-foreground group-hover:text-foreground transition-colors">Modo claro</span>
+
+      {/* Texto con animación suave de fade */}
+      <span
+        key={isDark ? 'dark' : 'light'}
+        className="font-medium text-muted-foreground group-hover:text-foreground transition-colors animate-in fade-in duration-200"
+      >
+        {isDark ? 'Modo claro' : 'Modo oscuro'}
+      </span>
+
+      {/* Ripple de fondo al hacer hover */}
+      <span className="absolute inset-0 rounded-md bg-primary/0 group-active:bg-primary/10 transition-colors duration-150" />
     </Button>
   )
 }
