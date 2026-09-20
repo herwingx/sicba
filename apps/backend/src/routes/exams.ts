@@ -162,6 +162,88 @@ router.get('/:id/results', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ─── PATCH /api/exams/:id — Editar Examen ────────────────────────────────────
+// Borrador: permite editar todo (título, fechas, tiempo, preguntas).
+// Publicado: solo permite editar fechas si no hay alumnos IN_PROGRESS.
+// Finalizado: no se puede editar nada.
+router.patch('/:id', requireAuth, async (req: Request, res: Response) => {
+  const { role } = (req as any).user;
+  if (role !== 'ADMIN' && role !== 'MAESTRO') {
+    return res.status(403).json({ error: 'Solo administradores pueden editar exámenes.' });
+  }
+
+  const { id } = req.params;
+  const { title, description, subjectId, questionIds, timeLimit, startTime, endTime } = req.body;
+
+  try {
+    const exam = await prisma.exam.findUnique({
+      where: { id },
+      include: { participations: { where: { status: 'IN_PROGRESS' } } },
+    });
+
+    if (!exam) return res.status(404).json({ error: 'Examen no encontrado.' });
+
+    const now = new Date();
+    const isFinished = exam.isActive && new Date(exam.endTime) < now;
+
+    if (isFinished) {
+      return res.status(409).json({ error: 'No se puede editar un examen que ya finalizó.' });
+    }
+
+    const hasActiveStudents = exam.participations.length > 0;
+    const isDraft = !exam.isActive;
+
+    if (isDraft) {
+      // Borrador: edición completa
+      const updated = await prisma.exam.update({
+        where: { id },
+        data: {
+          title: title ?? exam.title,
+          description: description ?? exam.description,
+          subjectId: subjectId ?? exam.subjectId,
+          timeLimit: timeLimit ? Number(timeLimit) : exam.timeLimit,
+          startTime: startTime ? new Date(startTime) : exam.startTime,
+          endTime: endTime ? new Date(endTime) : exam.endTime,
+          ...(questionIds && {
+            questions: {
+              deleteMany: {},
+              create: (questionIds as string[]).map((qId: string, index: number) => ({
+                questionId: qId,
+                order: index + 1,
+              })),
+            },
+          }),
+        },
+        include: { subject: true, questions: { include: { question: true } } },
+      });
+      return res.json(updated);
+    } else {
+      // Publicado: solo fechas si no hay alumnos respondiendo
+      if (hasActiveStudents) {
+        return res.status(409).json({
+          error: 'No se pueden cambiar las fechas mientras haya alumnos respondiendo el examen.',
+          activeCount: exam.participations.length,
+        });
+      }
+      if (!startTime && !endTime) {
+        return res.status(400).json({ error: 'Debes enviar al menos startTime o endTime para actualizar un examen publicado.' });
+      }
+      const updated = await prisma.exam.update({
+        where: { id },
+        data: {
+          startTime: startTime ? new Date(startTime) : exam.startTime,
+          endTime: endTime ? new Date(endTime) : exam.endTime,
+        },
+        include: { subject: true },
+      });
+      return res.json(updated);
+    }
+  } catch (error) {
+    console.error('Error al editar examen:', error);
+    return res.status(500).json({ error: 'Error interno al editar el examen.' });
+  }
+});
+
 // ─── PATCH /api/exams/:id/publish — Publicar / Despublicar Examen ────────────
 router.patch('/:id/publish', requireAuth, async (req: Request, res: Response) => {
   const { role } = (req as any).user;

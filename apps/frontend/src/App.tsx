@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import { LogOutIcon } from 'lucide-react'
 
 import { LoginForm } from '@/components/login-form'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -65,6 +64,32 @@ export default function App() {
   // Contexto para el flujo de exámenes.
   const [activeExamId, setActiveExamId] = useState<string | null>(null)
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
+  // Badge: conteo de exámenes activos disponibles para el alumno
+  const [examBadgeCount, setExamBadgeCount] = useState(0)
+  const role = localStorage.getItem('sicba_role')
+  const isStudent = role === 'ALUMNO'
+
+  // Fetch del conteo de exámenes activos para el badge del alumno
+  const refreshExamBadge = useCallback(async () => {
+    if (!isStudent) return
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/exams`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      const now = new Date()
+      const liveCount = (data as any[]).filter((e: any) => {
+        return e.isActive &&
+          new Date(e.startTime) <= now &&
+          new Date(e.endTime) >= now &&
+          e.myParticipation?.status !== 'SUBMITTED'
+      }).length
+      setExamBadgeCount(liveCount)
+    } catch { /* silencioso */ }
+  }, [token, isStudent])
+
+  useEffect(() => { refreshExamBadge() }, [refreshExamBadge])
 
   const handleLoginSuccess = (newToken: string) => setToken(newToken)
 
@@ -179,9 +204,10 @@ export default function App() {
       <TooltipProvider>
         <SidebarProvider>
           <AppSidebar
-            onNavigate={(page) => setCurrentPage(page as Page)}
+            onNavigate={(page) => { setCurrentPage(page as Page); if (page === 'exams') refreshExamBadge() }}
             currentPage={currentPage}
             onLogout={handleLogout}
+            examBadgeCount={examBadgeCount}
           />
           <SidebarInset>
             <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
@@ -194,12 +220,6 @@ export default function App() {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-              <div className="ml-auto">
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
-                  <LogOutIcon data-icon="inline-start" className="size-4" />
-                  Cerrar sesión
-                </Button>
-              </div>
             </header>
 
             <main className="flex flex-1 flex-col">

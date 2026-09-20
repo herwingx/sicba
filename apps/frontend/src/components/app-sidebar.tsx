@@ -37,6 +37,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onNavigate?: (page: string) => void
   currentPage?: string
   onLogout?: () => void
+  examBadgeCount?: number
 }
 
 /**
@@ -47,7 +48,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
  * @param {AppSidebarProps} props - Propiedades del componente incluyendo usuario y handlers.
  * @returns {JSX.Element} La estructura principal de navegación lateral.
  */
-export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }: AppSidebarProps) {
+export function AppSidebar({ user, onNavigate, currentPage, onLogout, examBadgeCount = 0, ...props }: AppSidebarProps) {
   const role = typeof window !== 'undefined' ? localStorage.getItem('sicba_role') : null;
   const isAdmin = role === 'ADMIN' || role === 'MAESTRO';
 
@@ -72,6 +73,7 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }
       icon: <ClipboardListIcon />,
       onClick: () => onNavigate?.("exams"),
       isActive: currentPage === "exams",
+      badge: examBadgeCount > 0 ? examBadgeCount : undefined,
     },
     ...(isAdmin ? [
       {

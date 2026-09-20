@@ -24,7 +24,7 @@ import {
 import {
   PlusCircleIcon, ClipboardListIcon, Users2Icon, BookOpenIcon,
   Loader2Icon, CheckIcon, TrashIcon, PlayCircleIcon, PauseCircleIcon,
-  BarChart2Icon, TrophyIcon, CheckCircle2Icon,
+  BarChart2Icon, TrophyIcon, CheckCircle2Icon, PencilIcon, AlertCircleIcon,
 } from 'lucide-react'
 import { DateTimePicker } from '@/components/date-time-picker'
 import { Separator } from '@/components/ui/separator'
@@ -95,6 +95,10 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
   const [resultsExam, setResultsExam] = useState<Exam | null>(null)
   const [examResults, setExamResults] = useState<ExamResult[]>([])
   const [resultsLoading, setResultsLoading] = useState(false)
+
+  // Estado para modal de edición (admin)
+  const [editingExam, setEditingExam] = useState<Exam | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
 
   // Form state
   const [form, setForm] = useState({ title: '', subjectId: '', timeLimit: '60' })
@@ -229,6 +233,52 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
       toast.error('Error de conexión al intentar eliminar.')
     } finally {
       setDeleteTargetId(null)
+    }
+  }
+
+  const handleEdit = async () => {
+    if (!editingExam) return
+    setEditSaving(true)
+    try {
+      const isDraft = !editingExam.isActive
+      const body: Record<string, unknown> = {
+        startTime: startDate?.toISOString(),
+        endTime: endDate?.toISOString(),
+      }
+      if (isDraft) {
+        body.title = form.title
+        body.subjectId = form.subjectId
+        body.timeLimit = form.timeLimit
+        body.questionIds = selectedQuestionIds
+      }
+      const res = await fetch(`${API}/api/exams/${editingExam.id}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success('Examen actualizado correctamente.')
+        setEditingExam(null)
+        loadExams()
+      } else {
+        toast.error(data.error || 'Error al guardar los cambios.')
+      }
+    } catch {
+      toast.error('Error de conexión al intentar editar.')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const openEditModal = (exam: Exam) => {
+    setEditingExam(exam)
+    setForm({ title: exam.title, subjectId: exam.subject?.name ?? '', timeLimit: String(exam.timeLimit) })
+    setStartDate(new Date(exam.startTime))
+    setEndDate(new Date(exam.endTime))
+    // Pre-cargar preguntas si es borrador
+    if (!exam.isActive) {
+      setForm((f) => ({ ...f, subjectId: '' })) // trigger reset de questions
     }
   }
 
@@ -393,7 +443,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                           </span>
                         )}
 
-                        {/* Admin: Publicar + Ver Resultados + Eliminar */}
+                        {/* Admin: Editar + Publicar + Ver Resultados + Eliminar */}
                         {isAdmin && (
                           <div className="flex justify-end gap-2">
                             <Button
@@ -404,6 +454,17 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                               <BarChart2Icon className="size-4 mr-1" />
                               Resultados
                             </Button>
+                            {/* Botón Editar: solo en Borrador o Publicado (no en Finalizado) */}
+                            {!isFinished && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEditModal(exam)}
+                                title={exam.isActive ? 'Solo puedes editar las fechas' : 'Editar examen'}
+                              >
+                                <PencilIcon className="size-4" />
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant={exam.isActive ? 'secondary' : 'default'}
@@ -570,6 +631,73 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
             <Button onClick={handleCreate} disabled={creating || !form.title || !form.subjectId}>
               {creating && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
               {creating ? 'Creando...' : 'Crear Borrador'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Editar Examen (Admin) */}
+      <Dialog open={!!editingExam} onOpenChange={(open) => !open && setEditingExam(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PencilIcon className="size-4 text-primary" />
+              Editar Examen
+            </DialogTitle>
+            <DialogDescription>
+              {editingExam?.isActive
+                ? 'Este examen está publicado. Solo puedes modificar las fechas.'
+                : 'Modifica el título, fechas, tiempo y preguntas del borrador.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Aviso cuando está publicado */}
+          {editingExam?.isActive && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+              <AlertCircleIcon className="size-4 shrink-0 mt-0.5" />
+              <p>Las preguntas y el título no pueden editarse una vez publicado para proteger la integridad del examen.</p>
+            </div>
+          )}
+
+          <div className="grid gap-4 py-2">
+            {/* Título — solo si es Borrador */}
+            {!editingExam?.isActive && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">Título del examen</Label>
+                <Input
+                  id="edit-title"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {/* Fechas — siempre editables */}
+            <div className="grid gap-4">
+              <DateTimePicker label="Fecha y hora de inicio" id="edit-start" value={startDate} onChange={setStartDate} />
+              <DateTimePicker label="Fecha y hora de fin" id="edit-end" value={endDate} onChange={setEndDate} />
+            </div>
+
+            {/* Tiempo — solo si es Borrador */}
+            {!editingExam?.isActive && (
+              <div className="grid gap-2">
+                <Label htmlFor="edit-time">Tiempo límite (minutos)</Label>
+                <Input
+                  id="edit-time"
+                  type="number"
+                  min={1}
+                  value={form.timeLimit}
+                  onChange={(e) => setForm((f) => ({ ...f, timeLimit: e.target.value }))}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingExam(null)}>Cancelar</Button>
+            <Button onClick={handleEdit} disabled={editSaving}>
+              {editSaving && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
+              {editSaving ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </DialogFooter>
         </DialogContent>
