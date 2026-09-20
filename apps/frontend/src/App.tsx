@@ -118,6 +118,8 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('sicba_token')
     localStorage.removeItem('sicba_role')
+    localStorage.removeItem('sicba_email')
+    localStorage.removeItem('sicba_name')
     setToken(null)
   }
 
@@ -230,6 +232,11 @@ export default function App() {
             currentPage={currentPage}
             onLogout={handleLogout}
             examBadgeCount={examBadgeCount}
+            user={{
+              name: localStorage.getItem('sicba_name') || (isStudent ? 'Alumno' : 'Administrador'),
+              email: localStorage.getItem('sicba_email') || '',
+              avatar: '/avatars/default.png'
+            }}
           />
           <SidebarInset>
             <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">

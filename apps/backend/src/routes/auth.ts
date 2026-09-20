@@ -50,7 +50,10 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ 
+      where: { email },
+      include: { profile: true }
+    });
     if (!user) {
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
@@ -85,7 +88,11 @@ router.post('/login', async (req: Request, res: Response) => {
       }
     });
     
-    res.json({ token, role: user.role, email: user.email });
+    const name = user.profile 
+      ? `${user.profile.firstName} ${user.profile.lastName}`.trim() 
+      : (user.role === 'ADMIN' ? 'Administrador' : 'Alumno');
+
+    res.json({ token, role: user.role, email: user.email, name });
   } catch (error) {
     res.status(500).json({ error: 'Error en inicio de sesión' });
   }

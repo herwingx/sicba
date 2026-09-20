@@ -61,6 +61,8 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
       // Almacena el token JWT y el rol en localStorage para la persistencia de la sesión
       localStorage.setItem("sicba_token", data.token)
       localStorage.setItem("sicba_role", data.role)
+      localStorage.setItem("sicba_email", data.email)
+      localStorage.setItem("sicba_name", data.name)
       onLoginSuccess(data.token, data.role)
     } catch {
       setError("No se pudo conectar con el servidor. Verifica que el backend esté activo.")
