@@ -12,10 +12,23 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+/**
+ * Propiedades para el formulario de inicio de sesión.
+ * @interface LoginFormProps
+ * @extends React.ComponentProps<"div">
+ */
 interface LoginFormProps extends React.ComponentProps<"div"> {
   onLoginSuccess: (token: string, role: string) => void
 }
 
+/**
+ * Componente LoginForm para la autenticación de usuarios.
+ * Maneja el estado local del formulario, las credenciales, el control del estado de error y carga,
+ * y realiza la petición (fetch) al endpoint `/api/auth/login` para obtener el JWT y rol del usuario.
+ *
+ * @param {LoginFormProps} props - Callbacks y propiedades adicionales.
+ * @returns {JSX.Element} Formulario de inicio de sesión.
+ */
 export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -24,10 +37,13 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Activa el estado de carga para deshabilitar interacciones
     setLoading(true)
+    // Limpia el estado de error previo
     setError("")
 
     try {
+      // Realiza el fetch al endpoint de autenticación mandando las credenciales
       const res = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,10 +53,12 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
       const data = await res.json()
 
       if (!res.ok) {
+        // Control de estado de error en caso de credenciales inválidas o fallo en el servidor
         setError(data.error || "Credenciales inválidas")
         return
       }
 
+      // Almacena el token JWT y el rol en localStorage para la persistencia de la sesión
       localStorage.setItem("sicba_token", data.token)
       localStorage.setItem("sicba_role", data.role)
       onLoginSuccess(data.token, data.role)

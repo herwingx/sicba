@@ -2,6 +2,13 @@ import { MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 
+/**
+ * Componente ThemeToggle para alternar el tema visual de la aplicación.
+ * Utiliza el hook `useTheme` de `next-themes` para interactuar con el `ThemeProvider` global
+ * y mutar el estado del tema (claro/oscuro), inyectando las clases correspondientes en el DOM.
+ * 
+ * @returns {JSX.Element} Botón para cambiar el modo de color.
+ */
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
 

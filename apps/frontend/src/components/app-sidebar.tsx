@@ -27,6 +27,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+/**
+ * Propiedades para el componente de la barra lateral de la aplicación.
+ * @interface AppSidebarProps
+ * @extends React.ComponentProps<typeof Sidebar>
+ */
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user?: { name: string; email: string; avatar: string }
   onNavigate?: (page: string) => void
@@ -34,6 +39,14 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onLogout?: () => void
 }
 
+/**
+ * Componente principal de la barra lateral (Sidebar) de la aplicación.
+ * Actúa como contenedor de alto nivel para inyectar y distribuir las vistas de navegación,
+ * integrando las secciones principales, secundarias, información del usuario y el toggle de temas.
+ * 
+ * @param {AppSidebarProps} props - Propiedades del componente incluyendo usuario y handlers.
+ * @returns {JSX.Element} La estructura principal de navegación lateral.
+ */
 export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }: AppSidebarProps) {
   const role = typeof window !== 'undefined' ? localStorage.getItem('sicba_role') : null;
   const isAdmin = role === 'ADMIN' || role === 'MAESTRO';
@@ -132,6 +145,7 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, ...props }
       </SidebarContent>
       <SidebarFooter>
         <div className="px-2 pb-1">
+          {/* Se inyecta el componente ThemeToggle encargado de mutar el tema de la aplicación */}
           <ThemeToggle />
         </div>
         <NavUser user={defaultUser} onLogout={onLogout} />

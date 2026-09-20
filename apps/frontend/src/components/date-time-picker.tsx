@@ -14,6 +14,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+/**
+ * Propiedades requeridas para el selector de fecha y hora.
+ * @interface DateTimePickerProps
+ */
 interface DateTimePickerProps {
   id?: string
   label: string
@@ -21,6 +25,14 @@ interface DateTimePickerProps {
   onChange: (date: Date | undefined) => void
 }
 
+/**
+ * Componente DateTimePicker que proporciona una interfaz unificada para seleccionar fechas y horas.
+ * Integra un componente `Calendar` de shadcn dentro de un `Popover` para la selección del día,
+ * y un `Input` tipo 'time' nativo para la selección de la hora, sincronizando ambos en un único estado de Date.
+ * 
+ * @param {DateTimePickerProps} props - Propiedades del componente.
+ * @returns {JSX.Element} Selector combinado de fecha y hora.
+ */
 export function DateTimePicker({ id, label, value, onChange }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false)
 

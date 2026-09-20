@@ -9,6 +9,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+/**
+ * Componente NavMain responsable de renderizar los enlaces principales de navegación.
+ * Itera sobre un listado de ítems y maneja las rutas laterales mediante eventos onClick (o URLs),
+ * aplicando estilos activos dinámicamente según la vista actual seleccionada.
+ * 
+ * @param {Object} props - Objeto contenedor con los ítems de navegación.
+ * @param {Array} props.items - Arreglo con la definición de cada ruta principal.
+ * @returns {JSX.Element} Grupo de navegación lateral con sus enlaces.
+ */
 export function NavMain({
   items,
 }: {
