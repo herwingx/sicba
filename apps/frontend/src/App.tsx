@@ -220,7 +220,7 @@ export default function App() {
     return (
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <TooltipProvider>
-          <div className="min-h-svh flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900 p-4">
+          <div className="min-h-svh flex items-center justify-center bg-linear-to-br from-slate-50 to-blue-50 dark:from-slate-950 dark:to-slate-900 p-4">
             <div className="w-full max-w-4xl">
               <LoginForm onLoginSuccess={handleLoginSuccess} />
             </div>
@@ -328,7 +328,7 @@ export default function App() {
             }}
           />
           <SidebarInset>
-            <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 sm:px-6 supports-backdrop-filter:bg-background/60 backdrop-blur-md">
               <SidebarTrigger className="-ml-1" />
               <Separator orientation="vertical" className="mr-2 h-4" />
               <Breadcrumb>
