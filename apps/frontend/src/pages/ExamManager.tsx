@@ -527,8 +527,8 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
       </AlertDialog>
 
       {/* Dialog: Crear Examen */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormError('') }}>
+        <DialogContent className="sm:max-w-md max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Crear Nuevo Examen</DialogTitle>
             <DialogDescription>
@@ -645,7 +645,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
 
       {/* Dialog: Editar Examen (Admin) */}
       <Dialog open={!!editingExam} onOpenChange={(open) => !open && setEditingExam(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PencilIcon className="size-4 text-primary" />
@@ -712,7 +712,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
 
       {/* Dialog: Ver Resultados (Admin) — Diseño Premium */}
       <Dialog open={!!resultsExam} onOpenChange={(open) => !open && setResultsExam(null)}>
-        <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col gap-0 p-0">
+        <DialogContent className="sm:max-w-3xl max-w-[calc(100%-2rem)] max-h-[92vh] overflow-hidden flex flex-col gap-0 p-0">
 
           {/* Header con gradiente */}
           <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-background px-6 pt-6 pb-5 border-b">
