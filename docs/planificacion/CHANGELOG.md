@@ -23,6 +23,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### Correcciones (Bugfixes)
 - **Filtro del Badge de Exámenes**: Se corrigió la lógica en `App.tsx` para que el contador rojo notifique también sobre los exámenes en estado "Próximamente" (futuros), y no solo los "En vivo".
 - **Color de Notificación en Sidebar**: Se modificó la clase de color del badge a `bg-destructive text-destructive-foreground` para asegurar que destaque como una "burbuja roja" real y mantenga excelente contraste y legibilidad tanto en modo claro como en oscuro.
+- **Sincronización de Navegación (SPA)**: Se enlazó el estado de navegación `currentPage` con el **hash de la URL (`window.location.hash`)**. Ahora, si el usuario recarga la página manualmente (`F5`), el sistema recuerda la vista en la que estaba y lo redirige automáticamente sin devolverlo al Dashboard.
+- **Refresco de Estado en Tiempo Real (Polling)**: Se añadió un intervalo de `polling` cada 15 segundos en `App.tsx` para recalcular el número de exámenes pendientes (`refreshExamBadge`). Así, cuando un alumno termina un examen y vuelve a la lista, el badge se apaga automáticamente sin intervención.
+- **Actualización Manual y UI Admin**: Se agregó un botón **"Actualizar"** explícito (`RefreshCwIcon`) en el panel de Exámenes para forzar la recarga manual de la tabla sin refrescar la app completa.
+- **Modal de Resultados Responsivo**: Se modificaron las *stats* rápidas del modal de Resultados (`ExamManager.tsx`) para usar `grid-cols-2 sm:grid-cols-4` en lugar de `flex`. Esto previene que el texto se rompa o genere _scroll_ horizontal incómodo en pantallas pequeñas al mostrar los porcentajes.
 
 ---
 
