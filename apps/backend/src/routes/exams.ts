@@ -241,12 +241,12 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Solo administradores pueden editar exámenes.' });
   }
 
-  const { id } = req.params;
+  const examId = req.params['id'] as string;
   const { title, description, subjectId, questionIds, timeLimit, startTime, endTime } = req.body;
 
   try {
     const exam = await prisma.exam.findUnique({
-      where: { id },
+      where: { id: examId },
       include: { participations: { where: { status: 'IN_PROGRESS' } } },
     });
 
@@ -259,13 +259,13 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'No se puede editar un examen que ya finalizó.' });
     }
 
-    const hasActiveStudents = exam.participations.length > 0;
+    const hasActiveStudents = (exam as any).participations.length > 0;
     const isDraft = !exam.isActive;
 
     if (isDraft) {
       // Borrador: edición completa
       const updated = await prisma.exam.update({
-        where: { id },
+        where: { id: examId },
         data: {
           title: title ?? exam.title,
           description: description ?? exam.description,
@@ -291,14 +291,14 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response) => {
       if (hasActiveStudents) {
         return res.status(409).json({
           error: 'No se pueden cambiar las fechas mientras haya alumnos respondiendo el examen.',
-          activeCount: exam.participations.length,
+          activeCount: (exam as any).participations.length,
         });
       }
       if (!startTime && !endTime) {
         return res.status(400).json({ error: 'Debes enviar al menos startTime o endTime para actualizar un examen publicado.' });
       }
       const updated = await prisma.exam.update({
-        where: { id },
+        where: { id: examId },
         data: {
           startTime: startTime ? new Date(startTime) : exam.startTime,
           endTime: endTime ? new Date(endTime) : exam.endTime,
