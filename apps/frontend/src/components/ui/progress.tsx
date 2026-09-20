@@ -1,3 +1,10 @@
+/**
+ * Componente UI Primitivo: progress
+ * Basado en shadcn/ui y Radix UI Primitives.
+ * Utiliza la utilidad `cn()` para la fusión segura de clases Tailwind CSS.
+ * Mantiene la accesibilidad web (WAI-ARIA) por defecto.
+ */
+
 import { Progress as ProgressPrimitive } from "@base-ui/react/progress"
 import { cn } from "cn"
 

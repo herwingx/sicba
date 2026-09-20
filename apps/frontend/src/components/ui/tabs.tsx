@@ -1,3 +1,10 @@
+/**
+ * Componente UI Primitivo: tabs
+ * Basado en shadcn/ui y Radix UI Primitives.
+ * Utiliza la utilidad `cn()` para la fusión segura de clases Tailwind CSS.
+ * Mantiene la accesibilidad web (WAI-ARIA) por defecto.
+ */
+
 import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"

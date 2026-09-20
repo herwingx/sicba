@@ -1,3 +1,10 @@
+/**
+ * Componente UI Primitivo: badge
+ * Basado en shadcn/ui y Radix UI Primitives.
+ * Utiliza la utilidad `cn()` para la fusión segura de clases Tailwind CSS.
+ * Mantiene la accesibilidad web (WAI-ARIA) por defecto.
+ */
+
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"

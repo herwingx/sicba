@@ -1,3 +1,10 @@
+/**
+ * Componente UI Primitivo: separator
+ * Basado en shadcn/ui y Radix UI Primitives.
+ * Utiliza la utilidad `cn()` para la fusión segura de clases Tailwind CSS.
+ * Mantiene la accesibilidad web (WAI-ARIA) por defecto.
+ */
+
 import { Separator as SeparatorPrimitive } from "@base-ui/react/separator"
 import { cn } from "cn"
 

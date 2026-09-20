@@ -1,3 +1,10 @@
+/**
+ * Componente UI Primitivo: dropdown-menu
+ * Basado en shadcn/ui y Radix UI Primitives.
+ * Utiliza la utilidad `cn()` para la fusión segura de clases Tailwind CSS.
+ * Mantiene la accesibilidad web (WAI-ARIA) por defecto.
+ */
+
 import * as React from "react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 import { cn } from "cn"
