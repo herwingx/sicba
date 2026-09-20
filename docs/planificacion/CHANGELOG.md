@@ -5,6 +5,57 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [Sábado 7] — 2026-09-20 ✅ COMPLETO
+
+### Añadido (Seguridad Operativa y Códigos de Acceso)
+- **Sistema Privado por Códigos de Acceso**:
+  - Al publicar un examen, el backend (`PATCH /api/exams/:id/publish`) genera automáticamente un código de acceso único (ej. `TEC-ABX3`).
+  - Nuevo endpoint `POST /api/exams/enroll` para que los alumnos se inscriban a concursos utilizando el código.
+  - La tabla de exámenes del Alumno ahora solo muestra los concursos a los que ya se ha inscrito exitosamente.
+- **Control Global de Registros**:
+  - Nuevo modelo `SystemSetting` en Prisma para almacenar la configuración de `registrationOpen`.
+  - Nuevo endpoint `GET y PATCH /api/settings/registration` para consultar y alterar este estado (solo ADMIN).
+  - La pestaña "Crear Cuenta" (`login-form.tsx`) se oculta automáticamente si los registros están cerrados.
+  - Se agregó validación adicional en el endpoint `POST /api/auth/register` para denegar registros si el sistema está cerrado.
+- **Filtro Institucional Obligatorio**:
+  - `POST /api/auth/register` ahora valida estrictamente que el correo proporcionado termine en `@mina.tecnm.mx`.
+- **Selector de Semestre**:
+  - El formulario de registro incluye ahora un menú desplegable (`Select`) obligatorio para elegir el semestre del 1º al 12º, guardándose correctamente en el Perfil del alumno en la base de datos.
+- **Purga Anual de Alumnos**:
+  - Nuevo endpoint `DELETE /api/users/purge` exclusivo para administradores, que elimina de forma masiva a todos los usuarios con rol `ALUMNO` y sus registros en cascada (Participaciones, Respuestas).
+  - Integrado un botón rojo "Purgar Alumnos" en `StudentsPage.tsx` con un `AlertDialog` de confirmación estricto para proteger contra accidentes.
+
+### Modificado
+- **`login-form.tsx`**: Totalmente refactorizado para usar el componente nativo `Tabs` de shadcn, permitiendo cambiar fluidamente entre iniciar sesión y registrarse (si los registros están habilitados).
+- **`StudentsPage.tsx`**: Incorporada la UI del administrador (Toggle de permitir registros y botón Purgar alumnos).
+- **`ExamManager.tsx`**:
+  - Agregada columna **"Código"** para el Administrador, junto con un botón interactivo (`CopyIcon`) que guarda el código en el portapapeles (`navigator.clipboard.writeText`) con confirmación de un `toast`.
+  - Agregado botón **"Unirme a Concurso"** para el Alumno, el cual lanza un Modal para ingresar el código y suscribirse.
+- **Perfiles Reales**: El backend de `auth.ts` ahora retorna los nombres reales durante el login y registro, almacenándolos en `localStorage` (como `sicba_name` y `sicba_email`) y mostrándolos dinámicamente en el Avatar del `Sidebar`.
+
+### Correcciones (Bugfixes Post-Sesión)
+- **Backend**:
+  - **`settings.ts`**: Corregido import de middleware: `../middlewares/auth` → `../middlewares/auth.middleware` (resolviendo crash del servidor al arrancar).
+  - **`GET /api/exams/:id/my-result` (NUEVO endpoint)**: Devuelve el score y breakdown completo (`content`, `selectedOptionContent`, `correctOptionContent`, `difficulty`, `explanation`, `options`) de la participación propia del alumno en un examen ya entregado (`status=SUBMITTED`). Reutiliza los campos exactos que espera el componente `ExamResult.tsx` del frontend. Protegido con `requireAuth`.
+  - **Campos de Schema en `my-result`**: Corregido el mapeo de propiedades `question.text` → `question.content` y `option.text` → `option.content`, alineándose con la definición real de Prisma donde los modelos `Question` y `Option` utilizan el atributo `content`.
+- **Frontend**:
+  - **`StudentsPage.tsx`**: Reemplazado `import { Switch }` (componente no instalado) por `import { Checkbox }` (disponible en el proyecto) para el toggle de control de registros. Eliminados imports no utilizados (`PowerIcon`, `AlertDialogAction`).
+  - **`ExamManager.tsx`**:
+    - Restaurados iconos faltantes en las importaciones (`CheckIcon`, `TrashIcon`, `PlayCircleIcon`, `PauseCircleIcon`).
+    - Eliminado `CopyIcon` del import genérico de lucide y utilizado apropiadamente en la nueva columna Código.
+    - Corregida doble llave de sintaxis `{ {` en la firma de la función exportada.
+    - Agregado prop `onViewResult?: (examId: string) => void`; el botón "Ver Resultados" ahora invoca a `onViewResult` en vez de `onEnterExam`.
+  - **`App.tsx`**:
+    - Eliminado import no utilizado de `Button`.
+    - Agregada función `handleViewResult` que consulta `GET /api/exams/:id/my-result`, almacena el resultado en el estado `examResult` y navega directamente a la vista `exam-result` sin pasar por `ExamRoom`.
+    - Agregado import de `toast` desde `sonner` para retroalimentación en el manejo de errores.
+    - Pasado `onViewResult={handleViewResult}` al componente `ExamManager`.
+- **Flujo Corregido ("Ver Resultados" para Alumno)**:
+  - **Antes**: Clic en "Ver Resultados" en la tabla → redirigía a `ExamRoom` → mostraba la pantalla pasiva "Ya entregaste este examen" (sin desglose ni retroalimentación).
+  - **Ahora**: Clic en "Ver Resultados" en la tabla → consulta `GET /api/exams/:id/my-result` → renderiza directamente `ExamResult.tsx` con el desglose interactivo pregunta por pregunta (acordeones, respuestas correctas/incorrectas y explicaciones).
+
+---
+
 ## [Sábado 6 - Noche] — 2026-09-19 ✅ COMPLETO
 
 ### Añadido (Edición Avanzada y UI/UX Premium)

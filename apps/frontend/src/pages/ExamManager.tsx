@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -24,11 +30,12 @@ import {
 import {
   PlusCircleIcon, ClipboardListIcon, Users2Icon, BookOpenIcon,
   Loader2Icon, CheckIcon, TrashIcon, PlayCircleIcon, PauseCircleIcon,
-  BarChart2Icon, TrophyIcon, CheckCircle2Icon, PencilIcon, AlertCircleIcon,
+  BarChart2Icon, TrophyIcon, PencilIcon, AlertCircleIcon,
+  CopyIcon,
+  KeyIcon,
   RefreshCwIcon,
 } from 'lucide-react'
 import { DateTimePicker } from '@/components/date-time-picker'
-import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 
 interface Exam {
@@ -36,7 +43,9 @@ interface Exam {
   title: string
   subject: { name: string }
   isActive: boolean
+  accessCode: string | null
   startTime: string
+  createdAt: string
   endTime: string
   timeLimit: number
   _count: { questions: number; participations: number }
@@ -69,6 +78,7 @@ interface Question {
 
 interface ExamManagerProps {
   onEnterExam?: (examId: string) => void
+  onViewResult?: (examId: string) => void
 }
 
 const API = 'http://localhost:3000'
@@ -77,7 +87,7 @@ const API = 'http://localhost:3000'
  * Componente para la gestión y listado de exámenes.
  * Se adapta según el rol del usuario (Admin/Maestro vs Alumno).
  */
-export function ExamManager({ onEnterExam }: ExamManagerProps) {
+export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   // Se obtiene el token y rol para determinar los permisos en la vista (RBAC básico).
   const token = localStorage.getItem('sicba_token')
   const role = localStorage.getItem('sicba_role')
@@ -97,9 +107,14 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
   const [examResults, setExamResults] = useState<ExamResult[]>([])
   const [resultsLoading, setResultsLoading] = useState(false)
 
-  // Estado para modal de edición (admin)
   const [editingExam, setEditingExam] = useState<Exam | null>(null)
   const [editSaving, setEditSaving] = useState(false)
+
+  // Estado para enroll
+  const [enrollOpen, setEnrollOpen] = useState(false)
+  const [enrollCode, setEnrollCode] = useState('')
+  const [enrollLoading, setEnrollLoading] = useState(false)
+  const [enrollError, setEnrollError] = useState('')
 
   // Form state
   const [form, setForm] = useState({ title: '', subjectId: '', timeLimit: '60' })
@@ -304,6 +319,43 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
     }
   }
 
+  const handleEnroll = async () => {
+    if (!enrollCode.trim()) {
+      setEnrollError('Ingresa un código.')
+      return
+    }
+    setEnrollError('')
+    setEnrollLoading(true)
+    // Formatear TECABCD a TEC-ABCD si el usuario usó InputOTP
+    let codeToSubmit = enrollCode.trim().toUpperCase()
+    if (codeToSubmit.length === 7 && codeToSubmit.startsWith('TEC')) {
+      codeToSubmit = `${codeToSubmit.slice(0, 3)}-${codeToSubmit.slice(3)}`
+    } else if (codeToSubmit.length === 8 && codeToSubmit[3] !== '-') {
+      codeToSubmit = `${codeToSubmit.slice(0, 3)}-${codeToSubmit.slice(4)}`
+    }
+
+    try {
+      const res = await fetch(`${API}/api/exams/enroll`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessCode: codeToSubmit }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || 'Te has unido exitosamente.')
+        setEnrollOpen(false)
+        setEnrollCode('')
+        loadExams() // Recargar lista para ver el nuevo examen
+      } else {
+        setEnrollError(data.error || 'Código inválido.')
+      }
+    } catch {
+      setEnrollError('Error de conexión al servidor.')
+    } finally {
+      setEnrollLoading(false)
+    }
+  }
+
   /**
    * Obtiene los resultados detallados de un examen específico.
    * Utilizado exclusivamente por administradores para ver el rendimiento de los alumnos.
@@ -351,10 +403,15 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
             <RefreshCwIcon className={`size-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
-          {isAdmin && (
+          {isAdmin ? (
             <Button onClick={() => { setDialogOpen(true); loadSubjects() }}>
-              <PlusCircleIcon data-icon="inline-start" />
+              <PlusCircleIcon className="size-4 mr-2" />
               Crear Examen
+            </Button>
+          ) : (
+            <Button onClick={() => setEnrollOpen(true)}>
+              <KeyIcon className="size-4 mr-2" />
+              Unirme a Concurso
             </Button>
           )}
         </div>
@@ -389,6 +446,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                 <TableRow>
                   <TableHead>Título</TableHead>
                   <TableHead>Materia</TableHead>
+                  {isAdmin && <TableHead>Código</TableHead>}
                   <TableHead className="text-center"><BookOpenIcon className="size-4 inline" /></TableHead>
                   <TableHead className="text-center"><Users2Icon className="size-4 inline" /></TableHead>
                   <TableHead>Tiempo</TableHead>
@@ -412,6 +470,28 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                     <TableRow key={exam.id}>
                       <TableCell className="font-medium">{exam.title}</TableCell>
                       <TableCell><Badge variant="outline">{exam.subject.name}</Badge></TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          {exam.accessCode ? (
+                            <div className="flex items-center gap-1 group">
+                              <span className="font-mono bg-muted px-2 py-0.5 rounded text-sm font-semibold">{exam.accessCode}</span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="size-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(exam.accessCode || '')
+                                  toast.success('Código copiado')
+                                }}
+                              >
+                                <CopyIcon className="size-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">Al publicar</span>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell className="text-center text-sm">{exam._count.questions}</TableCell>
                       <TableCell className="text-center text-sm">{exam._count.participations}</TableCell>
                       <TableCell className="text-sm">{exam.timeLimit} min</TableCell>
@@ -440,7 +520,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
                           </Button>
                         )}
                         {!isAdmin && myPart?.status === 'SUBMITTED' && (
-                          <Button size="sm" variant="outline" onClick={() => onEnterExam?.(exam.id)}>
+                          <Button size="sm" variant="outline" onClick={() => onViewResult?.(exam.id)}>
                             Ver Resultados
                           </Button>
                         )}
@@ -526,6 +606,46 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Dialog: Unirse a Concurso (Alumno) */}
+      <Dialog open={enrollOpen} onOpenChange={(open) => { setEnrollOpen(open); if (!open) setEnrollError('') }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Unirse a un Concurso</DialogTitle>
+            <DialogDescription>
+              Ingresa el código proporcionado por tu profesor para inscribirte en el examen.
+            </DialogDescription>
+          </DialogHeader>
+            <div className="flex flex-col items-center gap-4 py-4">
+              <InputOTP 
+                maxLength={7} 
+                value={enrollCode} 
+                onChange={(v) => setEnrollCode(v.toUpperCase())}
+                onKeyDown={(e) => e.key === 'Enter' && enrollCode.length === 7 && handleEnroll()}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                </InputOTPGroup>
+                <InputOTPSeparator />
+                <InputOTPGroup>
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                  <InputOTPSlot index={6} />
+                </InputOTPGroup>
+              </InputOTP>
+              {enrollError && <p className="text-sm text-destructive">{enrollError}</p>}
+            </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEnrollOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEnroll} disabled={enrollLoading}>
+              {enrollLoading ? 'Verificando...' : 'Unirse'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dialog: Crear Examen */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormError('') }}>
         <DialogContent className="sm:max-w-md max-w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
@@ -554,7 +674,7 @@ export function ExamManager({ onEnterExam }: ExamManagerProps) {
               {subjectsLoading ? (
                 <div className="h-9 w-full rounded-md border bg-muted animate-pulse" />
               ) : subjects.length > 0 ? (
-                <Select value={form.subjectId} onValueChange={handleSubjectChange}>
+                <Select value={form.subjectId} onValueChange={(val) => handleSubjectChange(val || '')}>
                   <SelectTrigger id="exam-subject">
                     <SelectValue placeholder="Selecciona una materia" />
                   </SelectTrigger>

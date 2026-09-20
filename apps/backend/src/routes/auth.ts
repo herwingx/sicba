@@ -12,7 +12,20 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret-for-dev';
  */
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { email, password, role, firstName, lastName } = req.body;
+    const { email, password, role, firstName, lastName, semester } = req.body;
+    
+    // Verificar si el registro está abierto
+    const setting = await prisma.systemSetting.findUnique({ where: { key: 'REGISTRATION_OPEN' } });
+    if (!setting || setting.value !== 'true') {
+      res.status(403).json({ error: 'Los registros están cerrados temporalmente.' });
+      return;
+    }
+
+    // Filtro Híbrido: Obligar correo institucional para alumnos
+    if ((role === 'ALUMNO' || !role) && !email.toLowerCase().endsWith('@mina.tecnm.mx')) {
+      res.status(403).json({ error: 'Solo se permiten correos institucionales (@mina.tecnm.mx).' });
+      return;
+    }
     
     // Verificamos si existe
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -30,7 +43,8 @@ router.post('/register', async (req: Request, res: Response) => {
         profile: {
           create: {
             firstName: firstName || '',
-            lastName: lastName || ''
+            lastName: lastName || '',
+            semester: semester ? parseInt(semester, 10) : null
           }
         }
       }

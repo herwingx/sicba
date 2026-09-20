@@ -66,7 +66,9 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
 
   try {
     const exams = await prisma.exam.findMany({
-      where: role === 'ALUMNO' ? { isActive: true } : undefined,
+      where: role === 'ALUMNO' 
+        ? { isActive: true, participations: { some: { studentId: userId } } } 
+        : undefined,
       include: {
         subject: { select: { name: true } },
         creator: { select: { profile: { select: { firstName: true, lastName: true } } } },
@@ -92,6 +94,73 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     return res.json(exams);
   } catch (error) {
     return res.status(500).json({ error: 'Error al obtener la lista de exámenes.' });
+  }
+});
+
+// ─── GET /api/exams/:id/my-result — Resultado propio del Alumno ──────────────
+/**
+ * Devuelve el score y el breakdown de la participación del alumno autenticado
+ * en el examen dado. Solo es accesible si ya entregó (SUBMITTED).
+ */
+router.get('/:id/my-result', requireAuth, async (req: Request, res: Response) => {
+  const { id: userId } = (req as any).user;
+  const examId = req.params['id'] as string;
+
+  try {
+    const participation = await prisma.participation.findFirst({
+      where: { examId, studentId: userId, status: 'SUBMITTED' },
+    });
+
+    if (!participation) {
+      return res.status(404).json({ error: 'No se encontró un resultado entregado para este examen.' });
+    }
+
+    // Reconstruir el breakdown (preguntas + respuestas) igual que en /submit
+    const examQuestions = await prisma.examQuestion.findMany({
+      where: { examId },
+      include: {
+        question: { include: { options: true } },
+      },
+      orderBy: { order: 'asc' },
+    });
+
+    const answers = await prisma.answer.findMany({
+      where: { participationId: participation.id },
+    });
+    const answerMap = new Map(answers.map((a) => [a.questionId, a.selectedOptionId]));
+
+    const breakdown = examQuestions.map(({ question }) => {
+      const selectedOptionId = answerMap.get(question.id) ?? null;
+      const correctOption = question.options.find((o) => o.isCorrect);
+      const selectedOption = question.options.find((o) => o.id === selectedOptionId);
+      const isCorrect = selectedOptionId === correctOption?.id;
+      return {
+        questionId: question.id,
+        // ExamResult usa "content" para el texto de la pregunta
+        content: question.content,
+        difficulty: question.difficulty ?? 1,
+        explanation: question.explanation ?? null,
+        selectedOptionId,
+        // ExamResult usa "selectedOptionContent" / "correctOptionContent"
+        selectedOptionContent: selectedOption?.content ?? null,
+        correctOptionId: correctOption?.id ?? null,
+        correctOptionContent: correctOption?.content ?? null,
+        isCorrect,
+        options: question.options.map((o) => ({ id: o.id, content: o.content, isCorrect: o.isCorrect })),
+      };
+    });
+
+    const correctCount = breakdown.filter((b) => b.isCorrect).length;
+
+    return res.json({
+      score: participation.score ?? 0,
+      correctCount,
+      totalQuestions: breakdown.length,
+      breakdown,
+    });
+  } catch (error) {
+    console.error('Error al obtener resultado propio:', error);
+    return res.status(500).json({ error: 'Error interno al obtener el resultado.' });
   }
 });
 
@@ -268,18 +337,72 @@ router.patch('/:id/publish', requireAuth, async (req: Request, res: Response) =>
       }
     }
 
+    // Generar código de acceso si se activa y no tiene
+    let accessCode = exam.accessCode;
+    if (!exam.isActive && !accessCode) {
+      accessCode = 'TEC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    }
+
     const updated = await prisma.exam.update({
       where: { id: examId },
-      data: { isActive: !exam.isActive },
+      data: { isActive: !exam.isActive, accessCode: !exam.isActive ? accessCode : exam.accessCode },
     });
 
     return res.json({
       message: updated.isActive ? 'Examen publicado.' : 'Examen despublicado.',
       isActive: updated.isActive,
+      accessCode: updated.accessCode
     });
   } catch (error) {
     console.error('Error al publicar examen:', error);
     return res.status(500).json({ error: 'Error interno al publicar el examen.' });
+  }
+});
+
+// ─── POST /api/exams/enroll — Unirse a un examen por código ─────────────────
+router.post('/enroll', requireAuth, async (req: Request, res: Response) => {
+  const { role, id: userId } = (req as any).user;
+  const { accessCode } = req.body;
+
+  if (role !== 'ALUMNO') {
+    return res.status(403).json({ error: 'Solo los alumnos pueden unirse a exámenes.' });
+  }
+
+  if (!accessCode) {
+    return res.status(400).json({ error: 'El código de acceso es obligatorio.' });
+  }
+
+  try {
+    const exam = await prisma.exam.findUnique({
+      where: { accessCode }
+    });
+
+    if (!exam || !exam.isActive) {
+      return res.status(404).json({ error: 'Código inválido o concurso cerrado.' });
+    }
+
+    // Verificar si ya está inscrito (ya tiene participación)
+    const existing = await prisma.participation.findFirst({
+      where: { examId: exam.id, studentId: userId as string }
+    });
+
+    if (existing) {
+      return res.status(409).json({ error: 'Ya estás inscrito en este concurso.' });
+    }
+
+    // Inscribir (crear participación PENDING)
+    await prisma.participation.create({
+      data: {
+        examId: exam.id,
+        studentId: userId as string,
+        status: 'PENDING'
+      }
+    });
+
+    return res.status(200).json({ message: 'Te has unido al concurso con éxito.', examId: exam.id });
+  } catch (error) {
+    console.error('Error al unirse a examen:', error);
+    return res.status(500).json({ error: 'Error interno.' });
   }
 });
 
@@ -332,6 +455,13 @@ router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
         },
         include: { answers: true },
       }) as ParticipationWithAnswers;
+    } else if (!participation.startedAt) {
+      // Compatibilidad con participaciones creadas antes de añadir startedAt
+      participation = await prisma.participation.update({
+        where: { id: participation.id },
+        data: { startedAt: new Date() },
+        include: { answers: true },
+      }) as ParticipationWithAnswers;
     }
 
     if (participation!.status === 'SUBMITTED') {
@@ -362,6 +492,7 @@ router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
       title: exam.title,
       timeLimit: exam.timeLimit,
       endTime: exam.endTime,
+      startedAt: participation!.startedAt,
       questions: shuffledQuestions,
       savedAnswers,
     });

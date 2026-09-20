@@ -60,7 +60,7 @@ export function DateTimePicker({ id, label, value, onChange }: DateTimePickerPro
       <div className="flex gap-2">
         {/* Selector de fecha con asChild (patrón estándar shadcn) */}
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
+          <PopoverTrigger>
             <Button
               id={id}
               variant="outline"

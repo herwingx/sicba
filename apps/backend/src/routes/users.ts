@@ -44,4 +44,23 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ─── DELETE /api/users/purge — Purgar todos los alumnos (Solo Admin) ─────────
+router.delete('/purge', requireAuth, async (req: Request, res: Response) => {
+  const { role } = (req as any).user;
+
+  if (role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Solo el administrador puede purgar alumnos.' });
+  }
+
+  try {
+    const deleted = await prisma.user.deleteMany({
+      where: { role: 'ALUMNO' }
+    });
+    return res.json({ message: `Se han eliminado ${deleted.count} alumnos de la base de datos.` });
+  } catch (error) {
+    console.error('Error al purgar alumnos:', error);
+    return res.status(500).json({ error: 'Error interno al purgar alumnos.' });
+  }
+});
+
 export default router;

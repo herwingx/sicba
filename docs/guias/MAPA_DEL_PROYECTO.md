@@ -18,7 +18,8 @@ Aquí vive el código que realmente "se enciende" y se expone a internet.
         *   `src/index.ts`: El punto de entrada, donde el servidor se levanta y escucha en el puerto 3000.
         *   `src/routes/auth.ts`: Login y registro con JWT + bcryptjs. Control de Sesión Única Activa.
         *   `src/routes/questions.ts`: CRUD del Banco de Reactivos y carga masiva `.xlsx` (multer + xlsx).
-        *   `src/routes/exams.ts`: **Motor de Exámenes** — crear (Borrador, `isActive:false`), publicar/despublicar (`PATCH /publish`), listar, iniciar con reanudación (`savedAnswers`), registrar respuestas, calificar. Eliminar protegido contra alumnos activos.
+        *   `src/routes/exams.ts`: **Motor de Exámenes** — crear (Borrador, `isActive:false`), publicar/despublicar (`PATCH /publish`), listar, inscribirse con código (`POST /enroll`), iniciar con reanudación (`savedAnswers`), registrar respuestas, calificar (`POST /submit`), consulta de resultado y desglose propio (`GET /api/exams/:id/my-result`), ranking admin (`GET /:id/results`). Eliminar protegido contra alumnos activos.
+        *   `src/routes/settings.ts`: Control de configuración global (`GET` y `PATCH /api/settings/registration`).
         *   `src/routes/subjects.ts`: Listar y crear materias (alimenta el Select del ExamManager).
         *   `src/middlewares/auth.middleware.ts`: Verifica JWT Y consulta la tabla `Session` en BD (Sesión Única).
         *   `.env`: Guarda `JWT_SECRET`, `PORT`, `DATABASE_URL`, `DIRECT_URL`.
@@ -81,16 +82,18 @@ Todo lo que está aquí es **invisible para Git**.
 3. El backend lo procesa en memoria con `multer` + `xlsx`, e inserta todas las preguntas en una sola `prisma.$transaction`.
 4. Si algo falla, ninguna pregunta se guarda (Atomicidad).
 
-**Flujo de Gestión de Materias y Exámenes (Sábado 6):**
+**Flujo de Gestión de Materias, Usuarios y Exámenes (Sábado 7):**
 1. Las materias se cargan desde la API en un `Select`; al elegir materia se muestran las preguntas con sus nombres reales (no UUIDs).
-2. El admin crea el examen → queda como **Borrador** (`isActive: false`). Aparece con badge gris en la tabla. Puede **Editarlo** por completo (título, fechas, preguntas, tiempo).
-3. El admin pulsa **Publicar** → el endpoint `PATCH /api/exams/:id/publish` activa el examen. Si hay alumnos `IN_PROGRESS`, la operación es rechazada (`409`). Al estar publicado, el botón de Editar solo permite cambiar fechas para proteger la integridad.
-4. El alumno ve un **Badge numérico rojo** en su sidebar que le notifica cuántos exámenes "En vivo" están disponibles. Al ingresar, el backend devuelve `savedAnswers` para reanudar si cerró el navegador.
-5. Si el alumno intenta cerrar la pestaña durante el examen, el browser muestra una advertencia nativa (`beforeunload`).
-6. Al entregar (o al expirar el tiempo), el listener `beforeunload` se limpia y el frontend llama a `POST /submit`.
-7. El servidor calcula la calificación y el **breakdown** (pregunta, respuesta elegida, opción correcta y explicación). El alumno entra a la pantalla de **Resultado Interactivo** (`ExamResult.tsx`) donde despliega acordeones para retroalimentación.
-8. El admin entra a su panel y pulsa el botón de gráfica para abrir el **Modal de Resultados Premium** (podio con medallas, stats rápidas superiores, tabla de estudiantes con avatares de iniciales y código de colores semánticos de porcentaje).
-9. El admin puede **Despublicar** o **Eliminar** el examen; eliminar devuelve `409` si hay alumnos activos.
+2. El control de registros es **Master Switch**. El Admin puede activar/desactivar la creación de nuevas cuentas de alumnos desde la vista `StudentsPage`. Los registros exigen dominio `@mina.tecnm.mx` y selección de Semestre.
+3. El admin crea el examen → queda como **Borrador** (`isActive: false`). Aparece con badge gris en la tabla. Puede **Editarlo** por completo (título, fechas, preguntas, tiempo).
+4. El admin pulsa **Publicar** → el endpoint genera automáticamente un **Código de Acceso** (ej. `TEC-ABX3`) que se muestra en la tabla junto a un botón para copiarlo. El estado cambia a activo. Si hay alumnos `IN_PROGRESS`, la operación es rechazada (`409`). Al estar publicado, el botón de Editar solo permite cambiar fechas para proteger la integridad.
+5. El alumno **no ve todos los exámenes** por defecto. En su lugar, usa el botón "Unirme a Concurso", introduce el código del examen proporcionado por el profesor y se inscribe.
+6. El alumno ve un **Badge numérico rojo** en su sidebar que le notifica cuántos de *sus* exámenes "En vivo" (inscritos) están disponibles. Al ingresar, el backend devuelve `savedAnswers` para reanudar si cerró el navegador.
+7. Si el alumno intenta cerrar la pestaña durante el examen, el browser muestra una advertencia nativa (`beforeunload`).
+8. Al entregar (o al expirar el tiempo), el listener `beforeunload` se limpia y el frontend llama a `POST /submit`.
+9. El servidor calcula la calificación y el **breakdown** (pregunta, respuesta elegida, opción correcta y explicación). El alumno entra a la pantalla de **Resultado Interactivo** (`ExamResult.tsx`) donde despliega acordeones para retroalimentación. Asimismo, cuando el alumno vuelve a consultar su lista de exámenes en `ExamManager`, el botón **"Ver Resultados"** consume `GET /api/exams/:id/my-result` y lo lleva directamente a la pantalla de resultados interactiva sin pasar por `ExamRoom`.
+10. El admin entra a su panel y pulsa el botón de gráfica para abrir el **Modal de Resultados Premium** (podio con medallas, stats rápidas superiores, tabla de estudiantes con avatares de iniciales y código de colores semánticos de porcentaje).
+11. Al finalizar el año escolar, el Admin puede ejecutar el botón **"Purgar Alumnos"** que elimina de tajo a todos los estudiantes y sus respuestas, dejando el sistema limpio para una nueva generación.
 
 ---
 

@@ -1,17 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Latex from 'react-latex-next'
 import 'katex/dist/katex.min.css'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { Progress, ProgressLabel } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Questionnaire,
+  QuestionnaireActions,
+  QuestionnaireChoice,
+  QuestionnaireChoices,
+  QuestionnaireItem,
+  QuestionnaireNext,
+  QuestionnairePrevious,
+  QuestionnaireTitle,
+} from "@/components/ui/questionnaire"
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
-  ClockIcon, CheckCircle2Icon, ChevronRightIcon, SendIcon, Loader2Icon,
+  ClockIcon, CheckCircle2Icon, SendIcon, Loader2Icon,
   ShieldCheckIcon, RotateCcwIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -111,15 +121,25 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
           setResumed(true)
           toast.info(`Reanudando examen — ${Object.keys(data.savedAnswers).length} respuestas recuperadas`, {
             duration: 4000,
+            id: 'resume-toast',
           })
+          
+          const firstUnanswered = data.questions.findIndex((q: any) => !data.savedAnswers[q.questionId])
+          if (firstUnanswered !== -1) {
+            setCurrentIndex(firstUnanswered)
+          } else {
+            setCurrentIndex(data.questions.length - 1)
+          }
         }
 
-        // Calcular tiempo restante basado en endTime del servidor
-        const endTime = new Date(data.endTime).getTime()
-        const remaining = Math.min(
-          Math.floor((endTime - Date.now()) / 1000),
-          data.timeLimit * 60
-        )
+        // Calcular tiempo restante robusto (con fallback para compatibilidad temporal)
+        const globalEndTime = new Date(data.endTime).getTime()
+        const startedAt = data.startedAt ? new Date(data.startedAt).getTime() : Date.now()
+        const personalEndTime = startedAt + data.timeLimit * 60 * 1000
+        
+        const finalEndTime = Math.min(globalEndTime, personalEndTime)
+        const remaining = Math.floor((finalEndTime - Date.now()) / 1000)
+        
         setTimeLeft(Math.max(0, remaining))
       } catch (err) {
         console.error('Error al iniciar examen:', err)
@@ -207,12 +227,22 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     }
   }
 
-  const currentQuestion = questions[currentIndex]
   const answeredCount = Object.keys(answers).length
   const progress = questions.length > 0 ? (answeredCount / questions.length) * 100 : 0
   const isLastQuestion = currentIndex === questions.length - 1
   const timeWarning = timeLeft < 120
   const timeDanger = timeLeft < 60
+
+  const items = questions.map((q) => ({
+    name: q.questionId,
+    required: false,
+    prompt: <Latex>{q.content}</Latex>,
+    difficulty: q.difficulty,
+    choices: q.options.map((opt) => ({
+      value: opt.id,
+      label: <Latex>{opt.content}</Latex>,
+    })),
+  }))
 
   // ─── Pantalla de carga ────────────────────────────────────────────────────
   if (loading) {
@@ -296,107 +326,86 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
           </div>
         </div>
 
-        {/* Barra de progreso */}
-        <div className="flex items-center gap-3">
-          <Progress value={progress} className="h-2 flex-1" />
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {answeredCount} / {questions.length} respondidas
-          </span>
-        </div>
-      </div>
-
-      {/* Pregunta actual */}
-      {currentQuestion && (
-        <Card className="flex-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <Badge variant="outline">
-                Pregunta {currentIndex + 1} de {questions.length}
-              </Badge>
-              <Badge variant="secondary">
-                {'⭐'.repeat(currentQuestion.difficulty)}
-              </Badge>
+        {/* Questionnaire Component */}
+        <div className="mt-4">
+          <Progress value={progress} className="w-full mb-8">
+            <div className="flex w-full items-center justify-between mb-2">
+              <ProgressLabel>Progreso del examen</ProgressLabel>
+              <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                {answeredCount} de {questions.length} preguntas
+              </span>
             </div>
-            <CardTitle className="text-base font-normal leading-relaxed mt-2">
-              <Latex>{currentQuestion.content}</Latex>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {currentQuestion.options.map((opt, i) => {
-              const selected = answers[currentQuestion.questionId] === opt.id
-              const letter = String.fromCharCode(65 + i)
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => handleSelectOption(currentQuestion.questionId, opt.id)}
-                  className={cn(
-                    'flex items-start gap-3 w-full rounded-lg border px-4 py-3 text-left text-sm transition-all duration-150',
-                    'hover:border-primary/50 hover:bg-accent/50',
-                    selected
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border bg-background'
-                  )}
-                >
-                  <span className={cn(
-                    'flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors',
-                    selected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  )}>
-                    {selected ? <CheckCircle2Icon className="size-3.5" /> : letter}
-                  </span>
-                  <span className="leading-relaxed">
-                    <Latex>{opt.content}</Latex>
-                  </span>
-                </button>
-              )
-            })}
-          </CardContent>
-        </Card>
-      )}
+          </Progress>
 
-      {/* Navegación */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-          disabled={currentIndex === 0}
-        >
-          Anterior
-        </Button>
-
-        <div className="flex gap-1 flex-wrap justify-center">
-          {questions.map((q, i) => (
-            <button
-              key={q.questionId}
-              onClick={() => setCurrentIndex(i)}
-              className={cn(
-                'size-7 rounded text-xs font-medium transition-colors',
-                i === currentIndex ? 'bg-primary text-primary-foreground' :
-                answers[q.questionId] ? 'bg-green-100 text-green-700 border border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700' :
-                'bg-muted text-muted-foreground hover:bg-accent'
-              )}
-            >
-              {i + 1}
-            </button>
-          ))}
+          <Questionnaire items={items} item={questions[currentIndex]?.questionId} onItemChange={(val) => {
+            const idx = questions.findIndex(q => q.questionId === val)
+            if (idx !== -1) setCurrentIndex(idx)
+          }}>
+            {items.map((question, index) => (
+              <QuestionnaireItem
+                key={question.name}
+                name={question.name}
+                required={question.required}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Badge variant="outline">
+                    Pregunta {index + 1} de {questions.length}
+                  </Badge>
+                  <Badge variant="secondary">
+                    {'⭐'.repeat(question.difficulty)}
+                  </Badge>
+                </div>
+                <QuestionnaireTitle className="text-lg mb-6 leading-relaxed">
+                  {question.prompt}
+                </QuestionnaireTitle>
+                <QuestionnaireChoices>
+                  {question.choices.map((choice, i) => {
+                    const isSelected = answers[question.name] === choice.value
+                    const letter = String.fromCharCode(65 + i)
+                    return (
+                      <QuestionnaireChoice 
+                        key={choice.value} 
+                        value={choice.value} 
+                        checked={isSelected}
+                        onChange={() => handleSelectOption(question.name, choice.value)}
+                      >
+                        <span className="font-medium flex items-center justify-between gap-2 w-full">
+                          <span>{choice.label}</span>
+                          <span className={cn(
+                            'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors border ml-auto',
+                            isSelected ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted text-muted-foreground border-input dark:bg-input/50'
+                          )}>
+                            {isSelected ? <CheckCircle2Icon className="size-3" /> : letter}
+                          </span>
+                        </span>
+                      </QuestionnaireChoice>
+                    )
+                  })}
+                </QuestionnaireChoices>
+              </QuestionnaireItem>
+            ))}
+            <QuestionnaireActions className="mt-6 pt-6 border-t flex justify-between gap-2">
+              <QuestionnairePrevious variant="outline">Anterior</QuestionnairePrevious>
+              
+              <div className="flex ml-auto gap-2">
+                {!isLastQuestion ? (
+                  <QuestionnaireNext>Siguiente</QuestionnaireNext>
+                ) : (
+                  <Button
+                    onClick={() => setConfirmOpen(true)}
+                    disabled={submitting}
+                    className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
+                  >
+                    {submitting
+                      ? <><Loader2Icon data-icon="inline-start" className="animate-spin" />Entregando...</>
+                      : <><SendIcon data-icon="inline-start" />Entregar Examen</>
+                    }
+                  </Button>
+                )}
+              </div>
+            </QuestionnaireActions>
+          </Questionnaire>
         </div>
-
-        {isLastQuestion ? (
-          <Button
-            onClick={() => setConfirmOpen(true)}
-            disabled={submitting}
-            className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
-          >
-            {submitting
-              ? <><Loader2Icon data-icon="inline-start" className="animate-spin" />Entregando...</>
-              : <><SendIcon data-icon="inline-start" />Entregar Examen</>
-            }
-          </Button>
-        ) : (
-          <Button onClick={() => setCurrentIndex((i) => Math.min(questions.length - 1, i + 1))}>
-            Siguiente
-            <ChevronRightIcon data-icon="inline-end" />
-          </Button>
-        )}
       </div>
 
       {/* Confirmación de entrega */}

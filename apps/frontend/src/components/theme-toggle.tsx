@@ -152,7 +152,7 @@ export function ThemeToggleCompact() {
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger>
         <Button
           variant="ghost"
           size="icon"

@@ -11,6 +11,7 @@ import questionsRoutes from './routes/questions';
 import examRoutes from './routes/exams';
 import subjectsRoutes from './routes/subjects';
 import usersRoutes from './routes/users';
+import settingsRoutes from './routes/settings';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/questions', questionsRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/subjects', subjectsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/settings', settingsRoutes);
 
 /**
  * Endpoint de prueba de salud de la API.

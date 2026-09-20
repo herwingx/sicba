@@ -6,8 +6,13 @@ import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
+
 import { Toaster } from '@/components/ui/sonner'
+import { toast } from 'sonner'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 import { LoginForm } from '@/components/login-form'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -65,19 +70,45 @@ export default function App() {
     return (hash as Page) || 'dashboard'
   })
 
-  // Escuchar cambios manuales en la URL (botones back/forward)
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '') as Page
-      if (hash) setCurrentPage(hash)
-    }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [])
-  
   // Contexto para el flujo de exámenes.
   const [activeExamId, setActiveExamId] = useState<string | null>(null)
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
+  // Bloqueo de navegación cuando el alumno está dentro del examen
+  const [examInProgress, setExamInProgress] = useState(false)
+  const [leaveAlertOpen, setLeaveAlertOpen] = useState(false)
+  const [pendingHash, setPendingHash] = useState<Page | null>(null)
+
+  // Escuchar cambios de hash (botones back/forward del navegador/mouse)
+  useEffect(() => {
+    const handleHashChange = (e: HashChangeEvent) => {
+      const newHash = new URL(e.newURL).hash.replace('#', '') as Page
+
+      // Si el alumno está en el examen e intenta salir hacia otra vista:
+      // revertimos el hash y mostramos el AlertDialog.
+      if (examInProgress && newHash !== 'exam-room') {
+        // Revertir el hash al estado del examen para evitar salir
+        window.location.hash = 'exam-room'
+        setPendingHash(newHash || 'exams')
+        setLeaveAlertOpen(true)
+        return
+      }
+
+      // Navegación normal entre páginas
+      if (newHash) setCurrentPage(newHash)
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [examInProgress])
+
+  const confirmLeaveExam = () => {
+    setLeaveAlertOpen(false)
+    setExamInProgress(false)
+    if (pendingHash) {
+      setCurrentPage(pendingHash)
+      window.location.hash = pendingHash
+    }
+  }
+  
   // Badge: conteo de exámenes activos disponibles para el alumno
   const [examBadgeCount, setExamBadgeCount] = useState(0)
   const role = localStorage.getItem('sicba_role')
@@ -125,10 +156,42 @@ export default function App() {
 
   const handleEnterExam = (examId: string) => {
     setActiveExamId(examId)
+    setExamInProgress(true)   // Bloquear navegación hacia atrás mientras está en el examen
     navigateTo('exam-room')
   }
 
+  // Ver resultados de un examen ya entregado directamente (sin pasar por ExamRoom)
+  const handleViewResult = async (examId: string) => {
+    const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+    try {
+      const res = await fetch(`${API}/api/exams/${examId}/my-result`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const resultData = {
+          score: data.score ?? 0,
+          correctCount: data.correctCount ?? 0,
+          totalQuestions: data.totalQuestions ?? 0,
+          breakdown: data.breakdown ?? [],
+        }
+        setExamResult(resultData)
+        setCurrentPage('exam-result')
+        window.location.hash = 'exam-result'
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        console.error('[handleViewResult] Error del API:', res.status, errData)
+        // Mostrar igual la pantalla de resultado vacía con score de la participación
+        toast.error(errData.error ?? 'No se pudieron cargar los resultados')
+      }
+    } catch (e) {
+      console.error('[handleViewResult] Error de red:', e)
+      toast.error('No se pudo conectar al servidor')
+    }
+  }
+
   const handleExamFinished = (result: ExamResultData) => {
+    setExamInProgress(false)  // Desbloquear navegación al entregar
     setExamResult(result)
     navigateTo('exam-result')
   }
@@ -136,6 +199,7 @@ export default function App() {
   const handleReturnFromResult = () => {
     setExamResult(null)
     setActiveExamId(null)
+    setExamInProgress(false)
     navigateTo('exams')
   }
 
@@ -180,6 +244,23 @@ export default function App() {
               onAlreadySubmitted={handleReturnFromResult}
             />
           </div>
+          <AlertDialog open={leaveAlertOpen} onOpenChange={setLeaveAlertOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Seguro que quieres salir del examen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tus respuestas guardadas se conservarán, pero el tiempo seguirá corriendo. 
+                  Podrás volver a entrar siempre que quede tiempo y el profesor no lo haya cerrado.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Permanecer en el examen</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmLeaveExam} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Sí, salir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Toaster position="bottom-right" richColors />
         </TooltipProvider>
       </ThemeProvider>
@@ -217,7 +298,7 @@ export default function App() {
     switch (currentPage) {
       case 'dashboard': return <DashboardHome />
       case 'questions': return <QuestionsAdmin />
-      case 'exams': return <ExamManager onEnterExam={handleEnterExam} />
+      case 'exams': return <ExamManager onEnterExam={handleEnterExam} onViewResult={handleViewResult} />
       case 'students': return <StudentsPage />
       default: return <PlaceholderPage page={currentPage} />
     }
