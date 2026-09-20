@@ -49,7 +49,7 @@ export function NavMain({
               </SidebarMenuButton>
               {/* Badge de notificación — solo aparece cuando hay exámenes activos */}
               {item.badge !== undefined && (
-                <SidebarMenuBadge className="bg-primary text-primary-foreground text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1">
+                <SidebarMenuBadge className="bg-destructive text-destructive-foreground text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 shadow-sm">
                   {item.badge > 9 ? '9+' : item.badge}
                 </SidebarMenuBadge>
               )}
