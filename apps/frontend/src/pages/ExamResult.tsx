@@ -124,12 +124,11 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
         </CardContent>
       </Card>
 
-      /**
+      {/*
        * Renderizado del breakdown (desglose de preguntas):
        * Se utiliza la librería react-latex-next (<Latex>) para renderizar correctamente
        * expresiones y fórmulas matemáticas dentro del contenido de las preguntas y opciones.
-       */
-      {/* Desglose pregunta por pregunta */}
+       */}
       {breakdown.length > 0 && (
         <div className="w-full flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">
