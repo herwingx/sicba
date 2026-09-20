@@ -59,8 +59,21 @@ export default function App() {
   // Estado de sesión hidratado inicialmente desde localStorage para persistencia.
   const [token, setToken] = useState<string | null>(localStorage.getItem('sicba_token'))
   
-  // Estado de navegación (enrutamiento manual sin react-router para simplificar la arquitectura).
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard')
+  // Estado de navegación (sincronizado con el hash de la URL para persistir al recargar).
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    const hash = window.location.hash.replace('#', '')
+    return (hash as Page) || 'dashboard'
+  })
+
+  // Escuchar cambios manuales en la URL (botones back/forward)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as Page
+      if (hash) setCurrentPage(hash)
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
   
   // Contexto para el flujo de exámenes.
   const [activeExamId, setActiveExamId] = useState<string | null>(null)
@@ -89,7 +102,16 @@ export default function App() {
     } catch { /* silencioso */ }
   }, [token, isStudent])
 
-  useEffect(() => { refreshExamBadge() }, [refreshExamBadge])
+  useEffect(() => { 
+    refreshExamBadge()
+    const interval = setInterval(refreshExamBadge, 15000) // Polling cada 15 segundos
+    return () => clearInterval(interval)
+  }, [refreshExamBadge])
+
+  const navigateTo = (page: Page) => {
+    window.location.hash = page
+    setCurrentPage(page)
+  }
 
   const handleLoginSuccess = (newToken: string) => setToken(newToken)
 
@@ -101,18 +123,18 @@ export default function App() {
 
   const handleEnterExam = (examId: string) => {
     setActiveExamId(examId)
-    setCurrentPage('exam-room')
+    navigateTo('exam-room')
   }
 
   const handleExamFinished = (result: ExamResultData) => {
     setExamResult(result)
-    setCurrentPage('exam-result')
+    navigateTo('exam-result')
   }
 
   const handleReturnFromResult = () => {
     setExamResult(null)
     setActiveExamId(null)
-    setCurrentPage('exams')
+    navigateTo('exams')
   }
 
   /**
@@ -204,7 +226,7 @@ export default function App() {
       <TooltipProvider>
         <SidebarProvider>
           <AppSidebar
-            onNavigate={(page) => { setCurrentPage(page as Page); if (page === 'exams') refreshExamBadge() }}
+            onNavigate={(page) => { navigateTo(page as Page); if (page === 'exams') refreshExamBadge() }}
             currentPage={currentPage}
             onLogout={handleLogout}
             examBadgeCount={examBadgeCount}
