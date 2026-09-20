@@ -82,7 +82,6 @@ export default function App() {
       const now = new Date()
       const liveCount = (data as any[]).filter((e: any) => {
         return e.isActive &&
-          new Date(e.startTime) <= now &&
           new Date(e.endTime) >= now &&
           e.myParticipation?.status !== 'SUBMITTED'
       }).length
