@@ -11,6 +11,7 @@ import { Toaster } from '@/components/ui/sonner'
 
 import { LoginForm } from '@/components/login-form'
 import { AppSidebar } from '@/components/app-sidebar'
+import { ThemeToggleCompact } from '@/components/theme-toggle'
 import { DashboardHome } from '@/pages/DashboardHome'
 import { QuestionsAdmin } from '@/pages/QuestionsAdmin'
 import { ExamManager } from '@/pages/ExamManager'
@@ -220,6 +221,10 @@ export default function App() {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
+              {/* Botón de modo oscuro: ícono compacto en el navbar, posición estándar de la industria */}
+              <div className="ml-auto">
+                <ThemeToggleCompact />
+              </div>
             </header>
 
             <main className="flex flex-1 flex-col">

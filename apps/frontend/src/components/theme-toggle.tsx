@@ -2,6 +2,7 @@ import { MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 /**
  * Componente ThemeToggle para alternar el tema visual de la aplicación.
@@ -103,5 +104,75 @@ export function ThemeToggle() {
       {/* Ripple de fondo al hacer hover */}
       <span className="absolute inset-0 rounded-md bg-primary/0 group-active:bg-primary/10 transition-colors duration-150" />
     </Button>
+  )
+}
+
+/**
+ * Versión compacta del ThemeToggle: solo ícono, sin texto.
+ * Diseñada para colocarse en el navbar superior derecho siguiendo el estándar
+ * de la industria (GitHub, Vercel, Linear). Incluye tooltip accesible.
+ *
+ * @returns {JSX.Element} Botón ícono compacto con animación de View Transitions.
+ */
+export function ThemeToggleCompact() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const toggleTheme = (e: React.MouseEvent) => {
+    const isDark = resolvedTheme === 'dark'
+    const newTheme = isDark ? 'light' : 'dark'
+
+    if (!document.startViewTransition) {
+      setTheme(newTheme)
+      return
+    }
+
+    const x = e.clientX
+    const y = e.clientY
+    const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))
+
+    const transition = document.startViewTransition(() => { setTheme(newTheme) })
+    transition.ready.then(() => {
+      const clipPath = [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`]
+      document.documentElement.animate(
+        { clipPath: isDark ? [...clipPath].reverse() : clipPath },
+        {
+          duration: 420,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          pseudoElement: isDark ? '::view-transition-old(root)' : '::view-transition-new(root)',
+        }
+      )
+    })
+  }
+
+  if (!mounted) return <div className="size-8" />
+
+  const isDark = resolvedTheme === 'dark'
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          className="size-8 relative overflow-hidden"
+          aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        >
+          <SunIcon
+            className={`absolute size-4 transition-all duration-300 text-amber-500
+              ${isDark ? '-rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`}
+          />
+          <MoonIcon
+            className={`absolute size-4 transition-all duration-300 text-indigo-400
+              ${isDark ? 'rotate-0 scale-100 opacity-100' : 'rotate-90 scale-0 opacity-0'}`}
+          />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        {isDark ? 'Modo claro' : 'Modo oscuro'}
+      </TooltipContent>
+    </Tooltip>
   )
 }
