@@ -5,6 +5,40 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [Sábado 8 (Entrega Final)] — 2026-09-21 ✅ COMPLETO
+
+### Añadido (Panel Analítico e Historiales)
+- **Reportes Analíticos (`ReportsPage`)**:
+  - Interfaz exclusiva para administradores con gráficos dinámicos integrados con `recharts`.
+  - Gráfico de Radar: Desempeño promedio segmentado por materias académicas.
+  - Gráfico de Línea (Timeline): Seguimiento de participaciones activas en el transcurso del tiempo.
+- **Kardex del Alumno (`StudentHistory`)**:
+  - Vista personal para estudiantes donde pueden auditar su historial completo de exámenes resueltos.
+  - Incorpora filtros integrados y retroalimentación de estado (`SUBMITTED`, puntaje, temporalidad).
+- **Consolidación del Padrón (`UsersAdmin`)**:
+  - Creación de un panel maestro de "Usuarios del Sistema".
+  - Agrupa todos los roles (`ADMIN`, `MAESTRO`, `ALUMNO`) en una vista interactiva y paginable con filtro por rol.
+  - Se eliminó el antiguo módulo redundante de `StudentsPage`.
+
+### Modificado (Estandarización UI/UX)
+- **Configuraciones Centralizadas (`SettingsPage`)**:
+  - Reubicación de controles administrativos: Se migró el "Toggle de Registro" y el "Botón de Purgar" de la vista de alumnos a la vista de Configuraciones.
+  - Refactorización de layout: Las tarjetas ahora ocupan el ancho total con un diseño adaptativo tipo Grid (horizontal en monitores, apilado en móvil).
+- **Dialogs en lugar de Alertas Nativas**:
+  - Se erradicaron todas las llamadas bloqueantes `prompt()` y `confirm()` del navegador para operaciones críticas (purga de BD, eliminación de exámenes/materias).
+  - Sustituidas completamente por componentes inmersivos `AlertDialog` y `Dialog` de `shadcn/ui`, asegurando una experiencia visual premium ("0 Deuda UX").
+- **Alineación Visual**:
+  - Se eliminaron las clases restrictivas de contenedores (`mx-auto`) en el Dashboard y la página de Configuración para coincidir con la alineación estándar (izquierda) y el formato fluido del resto de la aplicación.
+
+### Técnico & Mantenimiento
+- **Resolución de Deuda Técnica (TypeScript)**:
+  - Sincronizados todos los modelos de `backend/src/routes/stats.ts` y `questions.ts` para alinearse a los métodos correctos de Prisma (ej. `.participation` en lugar de `examParticipation`).
+  - El proyecto completo (backend y frontend) compila sin errores ni advertencias (código de salida `0` en `tsc --noEmit` y `vite build`).
+- **Documentación JSDoc Absoluta**:
+  - Comentarios en formato `JSDoc` / `TSDoc` aplicados al 100% de las páginas (`/pages`) y componentes (`/components`) del frontend, describiendo detalladamente contratos de interfaces, lógica de renderizado y propósito operativo.
+
+---
+
 ## [Sábado 7] — 2026-09-20 ✅ COMPLETO
 
 ### Añadido (Seguridad Operativa y Códigos de Acceso)

@@ -24,7 +24,7 @@ Aquí vive el código que realmente "se enciende" y se expone a internet.
         *   `src/middlewares/auth.middleware.ts`: Verifica JWT Y consulta la tabla `Session` en BD (Sesión Única).
         *   `.env`: Guarda `JWT_SECRET`, `PORT`, `DATABASE_URL`, `DIRECT_URL`.
 
-*   **`apps/frontend/`** 👉 **La Interfaz de Usuario — Sábado 5 Completo**
+*   **`apps/frontend/`** 👉 **La Interfaz de Usuario — Entrega Final (Sábado 8 Completo)**
     *   **Tecnología:** React 19, Vite, Tailwind CSS v4 (nativo, sin PostCSS), shadcn/ui v4 (40+ componentes), `next-themes` (modo oscuro).
     *   **¿Qué hace?:** Login, Dashboard, Banco de Reactivos, Motor de Exámenes completo (crear, publicar, hacer con reanudación, ver resultados). Modo oscuro global.
     *   **Archivos clave:**
@@ -34,6 +34,10 @@ Aquí vive el código que realmente "se enciende" y se expone a internet.
         *   `src/pages/ExamManager.tsx`: Gestión de exámenes — flujo Borrador→Publicar, AlertDialog de confirmación, toasts Sonner.
         *   `src/pages/ExamRoom.tsx`: Sala de concurso con temporizador, anti-cierre (`beforeunload`), reanudación automática y pantalla "ya entregado".
         *   `src/pages/ExamResult.tsx`: Pantalla de resultado con puntaje y desglose.
+        *   `src/pages/ReportsPage.tsx`: Panel analítico (Admin) con gráficos Recharts.
+        *   `src/pages/StudentHistory.tsx`: Kardex histórico de exámenes del alumno.
+        *   `src/pages/SettingsPage.tsx`: Configuraciones de sistema (purga, bloqueo de registro).
+        *   `src/pages/UsersAdmin.tsx`: Padrón integral de usuarios del sistema.
         *   `src/components/date-time-picker.tsx`: Componente DateTimePicker propio (Calendar+Popover+Time, campos apilados).
         *   `src/components/app-sidebar.tsx`: Sidebar filtrado por rol + ThemeToggle en footer.
         *   `src/components/theme-toggle.tsx`: Botón de toggle sol/luna para modo oscuro/claro.
