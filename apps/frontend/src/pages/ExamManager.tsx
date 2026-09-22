@@ -9,9 +9,8 @@ import { Label } from '@/components/ui/label'
 import {
   InputOTP,
   InputOTPGroup,
-  InputOTPSeparator,
   InputOTPSlot,
-} from "@/components/ui/input-otp"
+} from '@/components/ui/input-otp'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -38,54 +37,98 @@ import {
 import { DateTimePicker } from '@/components/date-time-picker'
 import { toast } from 'sonner'
 
+/**
+ * Representa la información general y estado de un examen.
+ */
 interface Exam {
+  /** Identificador único del examen */
   id: string
+  /** Título del examen */
   title: string
+  /** Materia a la que pertenece el examen */
   subject: { name: string }
+  /** Indica si el examen está activo o publicado */
   isActive: boolean
+  /** Código de acceso para que los alumnos puedan unirse */
   accessCode: string | null
+  /** Fecha y hora ISO de inicio */
   startTime: string
+  /** Fecha y hora ISO de creación */
   createdAt: string
+  /** Fecha y hora ISO de finalización */
   endTime: string
+  /** Duración máxima permitida en minutos */
   timeLimit: number
+  /** Conteo acumulado de preguntas y participantes */
   _count: { questions: number; participations: number }
   // Para alumno: su participación propia
+  /** Participación del alumno autenticado en el examen */
   myParticipation?: { status: string; score: number | null } | null
 }
 
+/**
+ * Información de desempeño y clasificación de un alumno en un examen.
+ */
 interface ExamResult {
+  /** Posición en el ranking de resultados */
   rank: number
+  /** Identificador de la participación */
   participationId: string
+  /** Identificador del alumno */
   studentId: string
+  /** Nombre completo del estudiante */
   studentName: string
+  /** Estado actual de la participación (ej. 'SUBMITTED') */
   status: string
+  /** Puntaje o calificación obtenida (0 - 100) */
   score: number | null
+  /** Fecha y hora ISO de inicio de resolución */
   startedAt: string | null
+  /** Fecha y hora ISO de envío o finalización */
   finishedAt: string | null
+  /** Tiempo empleado en minutos */
   durationMin: number | null
 }
 
+/**
+ * Materia o área de conocimiento asociada a un examen.
+ */
 interface Subject {
+  /** Identificador de la materia */
   id: string
+  /** Nombre descriptivo de la materia */
   name: string
 }
 
+/**
+ * Reactivo o pregunta del banco disponible para los exámenes.
+ */
 interface Question {
+  /** Identificador único de la pregunta */
   id: string
+  /** Enunciado o contenido de la pregunta */
   content: string
+  /** Nivel de dificultad asignado */
   difficulty: number
 }
 
+/**
+ * Propiedades recibidas por el componente ExamManager.
+ */
 interface ExamManagerProps {
+  /** Función callback ejecutada para ingresar a resolver un examen */
   onEnterExam?: (examId: string) => void
+  /** Función callback ejecutada para consultar los resultados de un examen */
   onViewResult?: (examId: string) => void
 }
 
 const API = 'http://localhost:3000'
 
 /**
- * Componente para la gestión y listado de exámenes.
- * Se adapta según el rol del usuario (Admin/Maestro vs Alumno).
+ * Componente principal para la gestión, administración y resolución de exámenes.
+ * Adapta la vista y acciones disponibles según el rol de usuario (Admin/Maestro vs Alumno).
+ *
+ * @param props Propiedades de navegación para ingresar o ver resultados de un examen.
  */
 export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   // Se obtiene el token y rol para determinar los permisos en la vista (RBAC básico).
@@ -124,6 +167,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
 
   const headers = { Authorization: `Bearer ${token}` }
 
+  /**
+   * Obtiene la lista actualizada de exámenes disponibles desde el servidor.
+   */
   const loadExams = async () => {
     setLoading(true)
     try {
@@ -137,6 +183,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Carga el catálogo de materias registradas para los formularios de examen.
+   */
   const loadSubjects = async () => {
     setSubjectsLoading(true)
     try {
@@ -163,6 +212,11 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Obtiene los reactivos disponibles asociados a la materia especificada.
+   *
+   * @param subjectId Identificador de la materia a consultar.
+   */
   const loadQuestions = async (subjectId: string) => {
     try {
       const res = await fetch(`${API}/api/questions?subjectId=${subjectId}`, { headers })
@@ -175,18 +229,31 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
 
   useEffect(() => { loadExams(); loadSubjects() }, [])
 
+  /**
+   * Actualiza la materia seleccionada en el formulario y consulta sus preguntas asociadas.
+   *
+   * @param val Identificador de la materia seleccionada.
+   */
   const handleSubjectChange = (val: string) => {
     setForm((f) => ({ ...f, subjectId: val }))
     setSelectedQuestionIds([])
     loadQuestions(val)
   }
 
+  /**
+   * Agrega o elimina una pregunta de la selección actual del examen.
+   *
+   * @param id Identificador de la pregunta a alternar.
+   */
   const toggleQuestion = (id: string) => {
     setSelectedQuestionIds((prev) =>
       prev.includes(id) ? prev.filter((q) => q !== id) : [...prev, id]
     )
   }
 
+  /**
+   * Valida y envía los datos para dar de alta un nuevo examen en estado borrador.
+   */
   const handleCreate = async () => {
     if (!startDate || !endDate) {
       setFormError('Selecciona la fecha y hora de inicio y fin.')
@@ -231,6 +298,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Ejecuta la eliminación del examen seleccionado y actualiza la lista.
+   */
   const handleDelete = async () => {
     if (!deleteTargetId) return
     try {
@@ -252,6 +322,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Guarda las actualizaciones realizadas al examen actualmente en edición.
+   */
   const handleEdit = async () => {
     if (!editingExam) return
     setEditSaving(true)
@@ -287,6 +360,11 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Prepara los valores del formulario y abre el modal para editar un examen.
+   *
+   * @param exam Examen que se desea modificar.
+   */
   const openEditModal = (exam: Exam) => {
     setEditingExam(exam)
     setForm({ title: exam.title, subjectId: exam.subject?.name ?? '', timeLimit: String(exam.timeLimit) })
@@ -298,6 +376,11 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Publica o despublica un examen para controlar su disponibilidad para los alumnos.
+   *
+   * @param exam Examen cuyo estado de publicación cambiará.
+   */
   const handlePublish = async (exam: Exam) => {
     setPublishingId(exam.id)
     try {
@@ -319,6 +402,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
     }
   }
 
+  /**
+   * Inscribe al alumno en un examen mediante el código de acceso ingresado.
+   */
   const handleEnroll = async () => {
     if (!enrollCode.trim()) {
       setEnrollError('Ingresa un código.')
@@ -359,6 +445,8 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   /**
    * Obtiene los resultados detallados de un examen específico.
    * Utilizado exclusivamente por administradores para ver el rendimiento de los alumnos.
+   *
+   * @param exam Examen del cual se consultarán los resultados.
    */
   const loadResults = async (exam: Exam) => {
     setResultsExam(exam)
@@ -382,7 +470,12 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   // del flujo de participación (alumno).
   const isAdmin = role === 'ADMIN' || role === 'MAESTRO'
 
-  // Truncar contenido de pregunta para mostrar en lista (elimina LaTeX $...$)
+  /**
+   * Trunca el contenido de una pregunta y remueve fórmulas LaTeX para previsualización en la lista.
+   *
+   * @param content Texto original de la pregunta.
+   * @param max Longitud máxima permitida antes de truncar con elipsis.
+   */
   const truncateQuestion = (content: string, max = 72) => {
     const clean = content.replace(/\$[^$]*\$/g, '[fórmula]').replace(/\\[a-zA-Z]+\{[^}]*\}/g, '[fórmula]')
     return clean.length > max ? clean.slice(0, max) + '…' : clean

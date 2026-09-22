@@ -11,6 +11,11 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+/**
+ * Interfaz que representa el desglose (breakdown) de una pregunta individual respondida.
+ * Utilizado para mostrar la retroalimentación al finalizar un examen.
+ * @interface BreakdownItem
+ */
 interface BreakdownItem {
   questionId: string
   content: string
@@ -24,6 +29,10 @@ interface BreakdownItem {
   options: { id: string; content: string; isCorrect: boolean }[]
 }
 
+/**
+ * Propiedades recibidas por el componente ExamResult.
+ * @interface ExamResultProps
+ */
 interface ExamResultProps {
   score: number
   correctCount: number
@@ -33,8 +42,15 @@ interface ExamResultProps {
 }
 
 /**
- * Componente que muestra los resultados de un examen.
- * Incluye una retroalimentación detallada con soporte para fórmulas matemáticas.
+ * Componente principal para mostrar el resultado de un examen recién finalizado.
+ * 
+ * Presenta una tarjeta resumen con la calificación (Score), reactivos correctos/incorrectos
+ * y un porcentaje. Además, renderiza de forma interactiva (acordeón) el desglose de cada
+ * pregunta, incluyendo soporte para LaTeX (`react-latex-next`) tanto en las preguntas 
+ * como en las opciones y explicaciones.
+ * 
+ * @param {ExamResultProps} props - Propiedades: score, correctCount, totalQuestions, breakdown, onReturnToDashboard
+ * @returns {JSX.Element} Vista de resultados.
  */
 export function ExamResult({ score, correctCount, totalQuestions, breakdown = [], onReturnToDashboard }: ExamResultProps) {
   // Índice para controlar el acordeón de la retroalimentación pregunta por pregunta.

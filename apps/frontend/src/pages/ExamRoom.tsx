@@ -27,11 +27,20 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
+/**
+ * Interfaz de una opción de respuesta.
+ * @interface Option
+ */
 interface Option {
   id: string
   content: string
 }
 
+/**
+ * Interfaz de un reactivo (pregunta) enviado al alumno.
+ * No contiene la respuesta correcta por seguridad.
+ * @interface Question
+ */
 interface Question {
   questionId: string
   content: string
@@ -39,6 +48,10 @@ interface Question {
   options: Option[]
 }
 
+/**
+ * Propiedades del componente ExamRoom.
+ * @interface ExamRoomProps
+ */
 interface ExamRoomProps {
   examId: string
   onFinished: (result: { score: number; correctCount: number; totalQuestions: number; breakdown?: any[] }) => void
@@ -47,6 +60,20 @@ interface ExamRoomProps {
 
 const API = 'http://localhost:3000'
 
+/**
+ * Componente principal para la sala de exámenes (Exam Room).
+ * 
+ * Este componente es el entorno seguro donde el alumno presenta su examen.
+ * Características principales:
+ * - Renderizado de preguntas y opciones matemáticas (LaTeX).
+ * - Temporizador estricto sincronizado con la configuración del examen.
+ * - Guardado automático en el servidor al seleccionar cada respuesta (prevención de pérdida de datos).
+ * - Recuperación automática de respuestas si el usuario cierra o recarga el navegador.
+ * - Prevención de cierre accidental (`beforeunload`).
+ * 
+ * @param {ExamRoomProps} props - ID del examen y callbacks de finalización.
+ * @returns {JSX.Element} La interfaz de resolución de examen.
+ */
 export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomProps) {
   const token = localStorage.getItem('sicba_token')
 
