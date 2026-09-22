@@ -35,4 +35,40 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/subjects/:id — Editar materia (Admin)
+router.patch('/:id', requireAuth, async (req, res) => {
+  const id = req.params.id as string;
+  const { role } = (req as any).user;
+  if (role !== 'ADMIN' && role !== 'MAESTRO') return res.status(403).json({ error: 'No autorizado.' });
+
+  try {
+    const { name, description } = req.body;
+    const subject = await prisma.subject.update({ where: { id }, data: { name, description } });
+    return res.json(subject);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al actualizar la materia.' });
+  }
+});
+
+// DELETE /api/subjects/:id — Eliminar materia (Admin)
+router.delete('/:id', requireAuth, async (req, res) => {
+  const id = req.params.id as string;
+  const { role } = (req as any).user;
+  if (role !== 'ADMIN' && role !== 'MAESTRO') return res.status(403).json({ error: 'No autorizado.' });
+
+  try {
+    
+    // Check if it has questions
+    const count = await prisma.question.count({ where: { subjectId: id } });
+    if (count > 0) {
+      return res.status(409).json({ error: 'No se puede eliminar porque tiene reactivos asociados.' });
+    }
+
+    await prisma.subject.delete({ where: { id } });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al eliminar la materia.' });
+  }
+});
+
 export default router;

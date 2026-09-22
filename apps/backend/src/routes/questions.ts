@@ -65,6 +65,56 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * Descarga una plantilla Excel (.xlsx) para carga masiva de reactivos,
+ * incluyendo los UUIDs de las materias en una segunda hoja para referencia.
+ * @route GET /api/questions/template
+ */
+router.get('/template', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const subjects = await prisma.subject.findMany({ select: { id: true, name: true } });
+    
+    // Hoja principal: Formato
+    const templateData = [
+      {
+        subjectId: subjects.length > 0 ? subjects[0].id : 'COPIA_AQUI_EL_ID',
+        content: 'Pregunta de ejemplo: ¿Cuánto es 2+2?',
+        difficulty: 1,
+        explanation: 'Porque 1+1=2 y 2+2=4',
+        option1: '3',
+        isCorrect1: 'FALSE',
+        option2: '4',
+        isCorrect2: 'TRUE',
+        option3: '5',
+        isCorrect3: 'FALSE',
+        option4: '6',
+        isCorrect4: 'FALSE'
+      }
+    ];
+
+    // Hoja secundaria: Diccionario de Materias
+    const dictionaryData = subjects.map(s => ({
+      Materia: s.name,
+      'ID (subjectId)': s.id
+    }));
+
+    const workbook = xlsx.utils.book_new();
+    const mainSheet = xlsx.utils.json_to_sheet(templateData);
+    const dictSheet = xlsx.utils.json_to_sheet(dictionaryData);
+
+    xlsx.utils.book_append_sheet(workbook, mainSheet, 'Plantilla');
+    xlsx.utils.book_append_sheet(workbook, dictSheet, 'IDs de Materias');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Disposition', 'attachment; filename="plantilla_reactivos_sicba.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al generar la plantilla' });
+  }
+});
+
+/**
  * Carga masiva de reactivos mediante un archivo Excel (.xlsx) o CSV.
  * @route POST /api/questions/bulk
  */
@@ -129,6 +179,70 @@ router.post('/bulk', requireAuth, upload.single('file') as RequestHandler, async
   } catch (error) {
     console.error('Bulk insert error:', error);
     res.status(500).json({ error: 'Error procesando el archivo de carga masiva' });
+  }
+});
+
+/**
+ * Actualiza un reactivo existente.
+ * @route PATCH /api/questions/:id
+ */
+router.patch('/:id', requireAuth, async (req, res) => {
+  const id = req.params.id as string;
+  if ((req as any).user?.role === 'ALUMNO') {
+    res.status(403).json({ error: 'No autorizado' });
+    return;
+  }
+
+  try {
+    const { content, difficulty, explanation, options } = req.body;
+
+    // Actualizamos en una transacción para borrar las opciones viejas y crear las nuevas
+    const question = await prisma.$transaction(async (tx) => {
+      // Si se envían nuevas opciones, las reemplazamos por completo
+      if (options && Array.isArray(options)) {
+        await tx.option.deleteMany({ where: { questionId: id } });
+      }
+
+      return tx.question.update({
+        where: { id },
+        data: {
+          content,
+          difficulty,
+          explanation,
+          ...(options && Array.isArray(options) ? {
+            options: {
+              create: options
+            }
+          } : {})
+        },
+        include: { options: true }
+      });
+    });
+
+    res.json(question);
+  } catch (error) {
+    console.error('Update question error:', error);
+    res.status(500).json({ error: 'Error al actualizar el reactivo' });
+  }
+});
+
+/**
+ * Elimina un reactivo existente.
+ * @route DELETE /api/questions/:id
+ */
+router.delete('/:id', requireAuth, async (req, res) => {
+  const id = req.params.id as string;
+  if ((req as any).user?.role === 'ALUMNO') {
+    res.status(403).json({ error: 'No autorizado' });
+    return;
+  }
+
+  try {
+    await prisma.question.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete question error:', error);
+    res.status(500).json({ error: 'Error al eliminar el reactivo' });
   }
 });
 

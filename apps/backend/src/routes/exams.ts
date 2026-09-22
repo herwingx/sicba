@@ -64,10 +64,15 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
 router.get('/', requireAuth, async (req: Request, res: Response) => {
   const { role, id: userId } = (req as any).user;
 
+  const isHistory = req.query['history'] === 'true';
+
   try {
     const exams = await prisma.exam.findMany({
       where: role === 'ALUMNO' 
-        ? { isActive: true, participations: { some: { studentId: userId } } } 
+        ? (isHistory 
+            ? { participations: { some: { studentId: userId, status: 'SUBMITTED' } } }
+            : { isActive: true }
+          )
         : undefined,
       include: {
         subject: { select: { name: true } },
