@@ -8,6 +8,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+/**
+ * Componente NavSecondary
+ * 
+ * Renderiza la sección inferior (secundaria) del menú lateral (Sidebar),
+ * usada habitualmente para opciones como Configuración o Ayuda.
+ * 
+ * @param {Object} props - Propiedades del componente incluyendo ítems de navegación.
+ * @returns {JSX.Element} Un bloque de navegación secundario.
+ */
 export function NavSecondary({
   items,
   ...props
@@ -16,6 +25,7 @@ export function NavSecondary({
     title: string
     url: string
     icon: React.ReactNode
+    onClick?: () => void
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
@@ -24,7 +34,15 @@ export function NavSecondary({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton render={<a href={item.url} />}>
+              <SidebarMenuButton 
+                onClick={(e) => {
+                  if (item.onClick) {
+                    e.preventDefault();
+                    item.onClick();
+                  }
+                }}
+                render={<a href={item.url} />}
+              >
                 {item.icon}
                 <span>{item.title}</span>
               </SidebarMenuButton>

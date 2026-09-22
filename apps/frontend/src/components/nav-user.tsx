@@ -22,6 +22,16 @@ import {
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, BellIcon, LogOutIcon } from "lucide-react"
 
+/**
+ * Componente NavUser
+ * 
+ * Despliega la información del usuario logueado en la parte inferior de la barra lateral.
+ * Incluye un menú desplegable (DropdownMenu) con opciones de cuenta y la acción principal
+ * de cerrar sesión (Logout).
+ * 
+ * @param {Object} props - Datos del usuario y el callback de cierre de sesión.
+ * @returns {JSX.Element} Bloque de perfil de usuario.
+ */
 export function NavUser({
   user,
   onLogout,

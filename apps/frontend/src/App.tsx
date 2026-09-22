@@ -22,9 +22,12 @@ import { QuestionsAdmin } from '@/pages/QuestionsAdmin'
 import { ExamManager } from '@/pages/ExamManager'
 import { ExamRoom } from '@/pages/ExamRoom'
 import { ExamResult } from '@/pages/ExamResult'
-import { StudentsPage } from '@/pages/StudentsPage'
+import { UsersAdmin } from '@/pages/UsersAdmin'
+import { SettingsPage } from '@/pages/SettingsPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { StudentHistory } from '@/pages/StudentHistory'
 
-type Page = 'dashboard' | 'questions' | 'exams' | 'exam-room' | 'exam-result' | 'students' | 'users' | 'reports'
+type Page = 'dashboard' | 'questions' | 'exams' | 'exam-room' | 'exam-result' | 'users' | 'reports' | 'settings' | 'history'
 
 const PAGE_LABELS: Record<Page, string> = {
   dashboard: 'Panel Principal',
@@ -32,9 +35,10 @@ const PAGE_LABELS: Record<Page, string> = {
   exams: 'Exámenes',
   'exam-room': 'Examen en Curso',
   'exam-result': 'Resultado del Examen',
-  students: 'Alumnos',
   users: 'Usuarios del Sistema',
   reports: 'Reportes',
+  settings: 'Configuración',
+  history: 'Historial',
 }
 
 interface ExamResultData {
@@ -66,8 +70,17 @@ export default function App() {
   
   // Estado de navegación (sincronizado con el hash de la URL para persistir al recargar).
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    const hash = window.location.hash.replace('#', '')
-    return (hash as Page) || 'dashboard'
+    let hash = window.location.hash.replace('#', '') as Page
+    if (!hash) hash = 'dashboard'
+    
+    // Proteger inicialización
+    const role = localStorage.getItem('sicba_role')
+    const isAdmin = role === 'ADMIN' || role === 'MAESTRO'
+    if (!isAdmin && ['questions', 'users', 'reports', 'settings'].includes(hash)) {
+      hash = 'dashboard'
+    }
+    
+    return hash
   })
 
   // Contexto para el flujo de exámenes.
@@ -147,6 +160,13 @@ export default function App() {
   }, [refreshExamBadge])
 
   const navigateTo = (page: Page) => {
+    // Protección de rutas: Alumno no puede entrar a rutas de admin
+    const isAdmin = role === 'ADMIN' || role === 'MAESTRO';
+    if (!isAdmin && ['questions', 'students', 'users', 'reports', 'settings'].includes(page)) {
+      page = 'dashboard';
+      toast.error('Acceso denegado');
+    }
+    
     window.location.hash = page
     setCurrentPage(page)
   }
@@ -307,7 +327,10 @@ export default function App() {
       case 'dashboard': return <DashboardHome />
       case 'questions': return <QuestionsAdmin />
       case 'exams': return <ExamManager onEnterExam={handleEnterExam} onViewResult={handleViewResult} />
-      case 'students': return <StudentsPage />
+      case 'users': return <UsersAdmin />
+      case 'settings': return <SettingsPage />
+      case 'reports': return <ReportsPage />
+      case 'history': return <StudentHistory />
       default: return <PlaceholderPage page={currentPage} />
     }
   }

@@ -21,10 +21,29 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 
+/**
+ * Propiedades del componente LoginForm.
+ * @interface LoginFormProps
+ */
 interface LoginFormProps extends React.ComponentProps<"div"> {
+  /**
+   * Callback invocado tras un inicio de sesión o registro exitoso.
+   * @param token El JWT retornado por la API.
+   * @param role El rol del usuario autenticado.
+   */
   onLoginSuccess: (token: string, role: string) => void
 }
 
+/**
+ * Componente interactivo para Autenticación (Login y Registro).
+ * 
+ * Gestiona formularios, estados de carga y validaciones.
+ * Interactúa con la configuración global (`/api/settings/registration`)
+ * para habilitar o deshabilitar la pestaña de registro según esté configurado.
+ * 
+ * @param {LoginFormProps} props - Callbacks y atributos nativos de contenedor.
+ * @returns {JSX.Element} El formulario de autenticación.
+ */
 export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProps) {
   const [activeTab, setActiveTab] = useState("login")
   const [registrationOpen, setRegistrationOpen] = useState(false)

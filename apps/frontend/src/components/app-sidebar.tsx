@@ -4,7 +4,6 @@ import * as React from "react"
 import {
   BookOpenIcon,
   ClipboardListIcon,
-  GraduationCapIcon,
   LayoutDashboardIcon,
   Settings2Icon,
   CircleHelpIcon,
@@ -74,14 +73,14 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, examBadgeC
       isActive: currentPage === "exams",
       badge: examBadgeCount > 0 ? examBadgeCount : undefined,
     },
+    ...(!isAdmin ? [{
+      title: "Mi Historial",
+      url: "#",
+      icon: <BarChartIcon />,
+      onClick: () => onNavigate?.("history"),
+      isActive: currentPage === "history",
+    }] : []),
     ...(isAdmin ? [
-      {
-        title: "Alumnos",
-        url: "#",
-        icon: <GraduationCapIcon />,
-        onClick: () => onNavigate?.("students"),
-        isActive: currentPage === "students",
-      },
       {
         title: "Usuarios del Sistema",
         url: "#",
@@ -104,6 +103,7 @@ export function AppSidebar({ user, onNavigate, currentPage, onLogout, examBadgeC
       title: "Configuración",
       url: "#",
       icon: <Settings2Icon />,
+      onClick: () => onNavigate?.("settings"),
     },
     {
       title: "Ayuda",
