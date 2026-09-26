@@ -169,7 +169,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
                     
                     <Field>
                       <FieldLabel htmlFor="email">Correo Electrónico</FieldLabel>
-                      <Input id="email" type="email" placeholder="usuario@mina.tecnm.mx" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+                      <Input id="email" type="email" placeholder="usuario@dominio.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
                     </Field>
                     
                     <Field>
@@ -206,7 +206,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
 
                     <Field>
                       <FieldLabel htmlFor="regEmail">Correo Institucional</FieldLabel>
-                      <Input id="regEmail" type="email" placeholder="al123@mina.tecnm.mx" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} disabled={regLoading} />
+                      <Input id="regEmail" type="email" placeholder="usuario@dominio.edu.mx" required value={regEmail} onChange={(e) => setRegEmail(e.target.value)} disabled={regLoading} />
                     </Field>
 
                     <Field>

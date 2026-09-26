@@ -40,6 +40,11 @@ export function SettingsPage() {
   const [purgeAlertOpen, setPurgeAlertOpen] = useState(false);
   const [purgeConfirmText, setPurgeConfirmText] = useState('');
 
+  // Estados para dominios
+  const [domains, setDomains] = useState('');
+  const [domainsLoading, setDomainsLoading] = useState(true);
+  const [domainsSaving, setDomainsSaving] = useState(false);
+
   const token = localStorage.getItem('sicba_token');
 
   useEffect(() => {
@@ -55,9 +60,21 @@ export function SettingsPage() {
       const data = await res.json();
       setIsOpen(data.isOpen);
     } catch {
-      toast.error('Error al cargar configuración');
+      toast.error('Error al cargar configuración de registros');
     } finally {
       setLoading(false);
+    }
+
+    try {
+      const resDom = await fetch('http://localhost:3000/api/settings/domains');
+      const dataDom = await resDom.json();
+      if (dataDom.domains) {
+        setDomains(dataDom.domains.join(', '));
+      }
+    } catch {
+      toast.error('Error al cargar dominios permitidos');
+    } finally {
+      setDomainsLoading(false);
     }
   };
 
@@ -83,6 +100,35 @@ export function SettingsPage() {
     } catch {
       setIsOpen(!checked); // Rollback
       toast.error('Error al cambiar la configuración');
+    }
+  };
+
+  /**
+   * Guarda los dominios permitidos para registro.
+   */
+  const handleSaveDomains = async () => {
+    setDomainsSaving(true);
+    try {
+      // Convertir el texto a arreglo separando por comas
+      const domainsArray = domains.split(',').map(d => d.trim()).filter(d => d);
+      if (domainsArray.length === 0) {
+        toast.error('Debes tener al menos un dominio permitido');
+        return;
+      }
+      const res = await fetch('http://localhost:3000/api/settings/domains', {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ domains: domainsArray })
+      });
+      if (!res.ok) throw new Error();
+      toast.success('Dominios actualizados correctamente');
+    } catch {
+      toast.error('Error al guardar dominios');
+    } finally {
+      setDomainsSaving(false);
     }
   };
 
@@ -115,7 +161,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 md:max-w-5xl">
+    <div className="flex flex-col gap-6 p-6 xl:max-w-[1600px] w-full mx-auto">
       <div className="flex items-center gap-2">
         <SettingsIcon className="size-6 text-primary" />
         <div>
@@ -124,7 +170,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <Card>
         <CardHeader>
           <CardTitle>Control de Acceso</CardTitle>
@@ -145,6 +191,34 @@ export function SettingsPage() {
             ) : (
               <Switch checked={isOpen} onCheckedChange={handleToggleRegistration} />
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Dominios Permitidos</CardTitle>
+          <CardDescription>
+            Especifica qué dominios de correo pueden usarse para registrar cuentas de alumnos. Separa múltiples dominios por comas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <Input 
+                value={domains} 
+                onChange={(e) => setDomains(e.target.value)} 
+                placeholder="Ej. @mina.tecnm.mx, @gmail.com" 
+                disabled={domainsLoading || domainsSaving}
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Los correos que no coincidan con estos dominios serán rechazados al intentar registrarse.
+              </p>
+            </div>
+            <Button onClick={handleSaveDomains} disabled={domainsLoading || domainsSaving}>
+              {domainsSaving && <Loader2Icon className="animate-spin mr-2" size={16} />}
+              {domainsSaving ? 'Guardando...' : 'Guardar Dominios'}
+            </Button>
           </div>
         </CardContent>
       </Card>

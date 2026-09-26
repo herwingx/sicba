@@ -21,10 +21,18 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
-    // Filtro Híbrido: Obligar correo institucional para alumnos
-    if ((role === 'ALUMNO' || !role) && !email.toLowerCase().endsWith('@mina.tecnm.mx')) {
-      res.status(403).json({ error: 'Solo se permiten correos institucionales (@mina.tecnm.mx).' });
-      return;
+    // Filtro Híbrido: Obligar correos institucionales para alumnos
+    if (role === 'ALUMNO' || !role) {
+      const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'ALLOWED_DOMAINS' } });
+      const allowedDomains = domainSetting ? domainSetting.value.split(',').map(d => d.trim().toLowerCase()) : ['@mina.tecnm.mx'];
+      
+      const emailLower = email.toLowerCase();
+      const isDomainAllowed = allowedDomains.some(domain => emailLower.endsWith(domain));
+
+      if (!isDomainAllowed) {
+        res.status(403).json({ error: `Solo se permiten los siguientes dominios: ${allowedDomains.join(', ')}` });
+        return;
+      }
     }
     
     // Verificamos si existe
