@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { FraudLog } from './FraudLog';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface StudentState {
   studentId: string;
@@ -235,29 +236,35 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
 
           {/* Rows (Dynamic order with CSS transitions) */}
           <div className="flex flex-col gap-3">
-            {sortedStudents.map((student, index) => {
-              const profile = student.user.profile;
-              const name = profile ? `${profile.firstName} ${profile.lastName}` : student.user.email;
-              const institution = profile?.institution || 'Sin institución';
-              const isTop3 = index < 3;
-              const progressPercentage = student.totalQuestions > 0 ? (student.answeredCount / student.totalQuestions) * 100 : 0;
-              const isSubmitted = student.status === 'SUBMITTED';
+            <AnimatePresence mode="popLayout">
+              {sortedStudents.map((student, index) => {
+                const profile = student.user.profile;
+                const name = profile ? `${profile.firstName} ${profile.lastName}` : student.user.email;
+                const institution = profile?.institution || 'Sin institución';
+                const isTop3 = index < 3;
+                const progressPercentage = student.totalQuestions > 0 ? (student.answeredCount / student.totalQuestions) * 100 : 0;
+                const isSubmitted = student.status === 'SUBMITTED';
 
-              return (
-                <Card 
-                  key={student.studentId}
-                  className={`
-                    border-none overflow-hidden transition-all duration-700 transform
-                    ${isTop3 ? 'bg-card/80 shadow-[0_8px_30px_rgb(0,0,0,0.4)] scale-[1.02]' : 'bg-card/40 opacity-90'}
-                    ${index === 0 ? 'ring-1 ring-yellow-500/50 shadow-yellow-500/10' : ''}
-                    ${index === 1 ? 'ring-1 ring-slate-400/50 shadow-slate-400/10' : ''}
-                    ${index === 2 ? 'ring-1 ring-amber-700/50 shadow-amber-700/10' : ''}
-                    backdrop-blur-md
-                  `}
-                  style={{
-                    order: index // Helps flex column sorting if needed, but array order already does it.
-                  }}
-                >
+                return (
+                  <motion.div
+                    key={student.studentId}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: isTop3 ? 1.02 : 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    style={{ zIndex: sortedStudents.length - index }}
+                  >
+                    <Card 
+                      className={`
+                        border-none overflow-hidden transition-all duration-300
+                        ${isTop3 ? 'bg-card/80 shadow-[0_8px_30px_rgb(0,0,0,0.4)]' : 'bg-card/40 opacity-90'}
+                        ${index === 0 ? 'ring-1 ring-yellow-500/50 shadow-yellow-500/10' : ''}
+                        ${index === 1 ? 'ring-1 ring-slate-400/50 shadow-slate-400/10' : ''}
+                        ${index === 2 ? 'ring-1 ring-amber-700/50 shadow-amber-700/10' : ''}
+                        backdrop-blur-md
+                      `}
+                    >
                   <div className="grid grid-cols-12 gap-4 items-center px-6 py-4 relative">
                     
                     {/* Rank */}
@@ -318,8 +325,10 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
                     </div>
                   </div>
                 </Card>
+              </motion.div>
               );
             })}
+            </AnimatePresence>
 
             {sortedStudents.length === 0 && (
               <div className="text-center py-20 text-foreground0 border border-dashed border-border rounded-xl bg-card/20">
