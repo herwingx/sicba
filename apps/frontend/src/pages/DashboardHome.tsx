@@ -103,11 +103,11 @@ export function DashboardHome() {
 
   const studentCards = [
     {
-      title: 'Exámenes Disponibles',
+      title: 'Concursos Pendientes',
       value: stats?.totalExams ?? 0,
-      description: 'Exámenes activos en este momento',
+      description: 'Exámenes a los que estás inscrito',
       icon: ActivityIcon,
-      trend: 'Disponibles',
+      trend: 'Por presentar',
     },
     {
       title: 'Exámenes Completados',
@@ -197,7 +197,7 @@ export function DashboardHome() {
               <>
                 <div className="flex gap-2 items-start">
                   <div className="mt-1 size-1.5 rounded-full bg-primary shrink-0" />
-                  <p><strong className="text-foreground">Exámenes Disponibles:</strong> Usa el menú lateral para ver e ingresar a los concursos que están activos.</p>
+                  <p><strong className="text-foreground">Concursos Pendientes:</strong> Usa el menú lateral para inscribirte y entrar a tus concursos.</p>
                 </div>
                 <div className="flex gap-2 items-start">
                   <div className="mt-1 size-1.5 rounded-full bg-primary shrink-0" />

@@ -45,7 +45,9 @@ router.get('/', requireAuth, async (req, res) => {
           _avg: { score: true },
           where: { studentId: user.id, status: 'SUBMITTED' }
         }),
-        prisma.exam.count({ where: { isActive: true } })
+        prisma.participation.count({
+          where: { studentId: user.id, status: 'IN_PROGRESS' }
+        })
       ]);
 
       return res.json({
