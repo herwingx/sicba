@@ -115,6 +115,57 @@ router.get('/template', requireAuth, async (req: AuthRequest, res: Response) => 
 });
 
 /**
+ * Descarga todos los reactivos actuales de la base de datos en formato Excel (.xlsx).
+ * @route GET /api/questions/export
+ */
+router.get('/export', requireAuth, async (req: AuthRequest, res: Response) => {
+  if (req.user?.role === 'ALUMNO') {
+    res.status(403).json({ error: 'No autorizado' });
+    return;
+  }
+
+  try {
+    const questions = await prisma.question.findMany({
+      include: {
+        subject: { select: { name: true } },
+        options: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const rows = questions.map(q => {
+      const row: any = {
+        subjectId: q.subject.name,
+        content: q.content,
+        difficulty: q.difficulty,
+        explanation: q.explanation || ''
+      };
+
+      // Agregar las opciones dinámicamente, hasta un máximo de 4 para el formato estándar
+      q.options.slice(0, 4).forEach((opt, idx) => {
+        row[`option${idx + 1}`] = opt.content;
+        row[`isCorrect${idx + 1}`] = opt.isCorrect ? 'TRUE' : 'FALSE';
+      });
+
+      return row;
+    });
+
+    const workbook = xlsx.utils.book_new();
+    const mainSheet = xlsx.utils.json_to_sheet(rows.length > 0 ? rows : [{ subjectId: 'Sin datos' }]);
+    xlsx.utils.book_append_sheet(workbook, mainSheet, 'Reactivos Exportados');
+
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename="banco_reactivos_sicba.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Error exporting questions:', error);
+    res.status(500).json({ error: 'Error al exportar los reactivos' });
+  }
+});
+
+/**
  * Carga masiva de reactivos mediante un archivo Excel (.xlsx) o CSV.
  * @route POST /api/questions/bulk
  */
@@ -145,24 +196,49 @@ router.post('/bulk', requireAuth, upload.single('file') as RequestHandler, async
 
     let importedCount = 0;
 
-    // 3. Procesar las filas dentro de una transacción para garantizar consistencia
-    await prisma.$transaction(async (tx) => {
-      for (const row of rows) {
-        // Se espera que el excel tenga: subjectId, content, difficulty, explanation
-        // Y opciones: option1, isCorrect1 (bool), option2, isCorrect2, etc...
-        const { subjectId, content, difficulty, explanation, option1, isCorrect1, option2, isCorrect2, option3, isCorrect3, option4, isCorrect4 } = row;
-        
-        if (!subjectId || !content) continue;
+    // 3. Procesar las filas y crear un arreglo de operaciones
+    const operations = [];
+    const subjectCache = new Map<string, string>(); // Para no saturar la BD buscando el mismo nombre
 
-        const optionsToCreate = [];
-        if (option1) optionsToCreate.push({ content: String(option1), isCorrect: isCorrect1 === true || isCorrect1 === 'TRUE' || isCorrect1 === 'true' });
-        if (option2) optionsToCreate.push({ content: String(option2), isCorrect: isCorrect2 === true || isCorrect2 === 'TRUE' || isCorrect2 === 'true' });
-        if (option3) optionsToCreate.push({ content: String(option3), isCorrect: isCorrect3 === true || isCorrect3 === 'TRUE' || isCorrect3 === 'true' });
-        if (option4) optionsToCreate.push({ content: String(option4), isCorrect: isCorrect4 === true || isCorrect4 === 'TRUE' || isCorrect4 === 'true' });
+    for (const row of rows) {
+      // Se espera que el excel tenga: subjectId, content, difficulty, explanation
+      // Y opciones: option1, isCorrect1 (bool), option2, isCorrect2, etc...
+      const { subjectId, content, difficulty, explanation, option1, isCorrect1, option2, isCorrect2, option3, isCorrect3, option4, isCorrect4 } = row;
+      
+      if (!subjectId || !content) continue;
 
-        await tx.question.create({
+      let finalSubjectId = String(subjectId).trim();
+
+      // Si no es un UUID (36 caracteres), intentamos buscar la materia por nombre (ignorando mayúsculas/minúsculas)
+      if (finalSubjectId.length !== 36) {
+        const lowerName = finalSubjectId.toLowerCase();
+        if (subjectCache.has(lowerName)) {
+          finalSubjectId = subjectCache.get(lowerName)!;
+        } else {
+          const subject = await prisma.subject.findFirst({
+            where: { name: { equals: finalSubjectId, mode: 'insensitive' } }
+          });
+          
+          if (subject) {
+            subjectCache.set(lowerName, subject.id);
+            finalSubjectId = subject.id;
+          } else {
+            // Si la materia no existe, no insertamos este reactivo
+            continue;
+          }
+        }
+      }
+
+      const optionsToCreate = [];
+      if (option1) optionsToCreate.push({ content: String(option1), isCorrect: isCorrect1 === true || isCorrect1 === 'TRUE' || isCorrect1 === 'true' });
+      if (option2) optionsToCreate.push({ content: String(option2), isCorrect: isCorrect2 === true || isCorrect2 === 'TRUE' || isCorrect2 === 'true' });
+      if (option3) optionsToCreate.push({ content: String(option3), isCorrect: isCorrect3 === true || isCorrect3 === 'TRUE' || isCorrect3 === 'true' });
+      if (option4) optionsToCreate.push({ content: String(option4), isCorrect: isCorrect4 === true || isCorrect4 === 'TRUE' || isCorrect4 === 'true' });
+
+      operations.push(
+        prisma.question.create({
           data: {
-            subjectId: String(subjectId),
+            subjectId: finalSubjectId,
             content: String(content),
             difficulty: difficulty ? Number(difficulty) : 1,
             explanation: explanation ? String(explanation) : null,
@@ -170,10 +246,13 @@ router.post('/bulk', requireAuth, upload.single('file') as RequestHandler, async
               create: optionsToCreate
             }
           }
-        });
-        importedCount++;
-      }
-    });
+        })
+      );
+    }
+
+    // 4. Ejecutar las inserciones en una transacción secuencial (evita P2028 Interactive Transactions limit)
+    await prisma.$transaction(operations);
+    importedCount = operations.length;
 
     res.status(201).json({ message: `Carga masiva exitosa. Se insertaron ${importedCount} reactivos.` });
   } catch (error) {
@@ -194,30 +273,33 @@ router.patch('/:id', requireAuth, async (req, res) => {
   }
 
   try {
-    const { content, difficulty, explanation, options } = req.body;
+    const { subjectId, content, difficulty, explanation, options } = req.body;
 
     // Actualizamos en una transacción para borrar las opciones viejas y crear las nuevas
-    const question = await prisma.$transaction(async (tx) => {
-      // Si se envían nuevas opciones, las reemplazamos por completo
-      if (options && Array.isArray(options)) {
-        await tx.option.deleteMany({ where: { questionId: id } });
-      }
+    // Usamos transacción secuencial (array) para evitar errores de PgBouncer con transacciones interactivas
+    const operations = [];
+    if (options && Array.isArray(options)) {
+      operations.push(prisma.option.deleteMany({ where: { questionId: id } }));
+    }
 
-      return tx.question.update({
-        where: { id },
-        data: {
-          content,
-          difficulty,
-          explanation,
-          ...(options && Array.isArray(options) ? {
-            options: {
-              create: options
-            }
-          } : {})
-        },
-        include: { options: true }
-      });
-    });
+    operations.push(prisma.question.update({
+      where: { id },
+      data: {
+        subjectId,
+        content,
+        difficulty,
+        explanation,
+        ...(options && Array.isArray(options) ? {
+          options: {
+            create: options
+          }
+        } : {})
+      },
+      include: { options: true }
+    }));
+
+    const results = await prisma.$transaction(operations);
+    const question = results[results.length - 1];
 
     res.json(question);
   } catch (error) {

@@ -147,6 +147,10 @@ export function QuestionsAdmin() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('ALL');
 
   // Bulk Upload State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -268,6 +272,29 @@ export function QuestionsAdmin() {
     }
   };
 
+  /**
+   * Exporta todo el banco de reactivos actual a un archivo Excel (.xlsx).
+   */
+  const downloadExport = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/questions/export', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'banco_reactivos_sicba.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Error al exportar el banco de reactivos');
+    }
+  };
+
   // --- CRUD Individual ---
   /**
    * Inicializa el formulario con valores por defecto y abre el panel lateral (Sheet) para dar de alta un nuevo reactivo.
@@ -309,10 +336,12 @@ export function QuestionsAdmin() {
   /**
    * Elimina de forma permanente el reactivo seleccionado en el diálogo de confirmación y recarga la lista.
    */
-  const handleDelete = async () => {
-    if (!questionToDelete) return;
+  const handleDelete = async (id: string) => {
+    if (!id) return;
+    // Clear state immediately to prevent double-clicks from firing again
+    setQuestionToDelete(null);
     try {
-      const res = await fetch(`http://localhost:3000/api/questions/${questionToDelete}`, {
+      const res = await fetch(`http://localhost:3000/api/questions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -321,8 +350,6 @@ export function QuestionsAdmin() {
       fetchData();
     } catch {
       toast.error('Error al eliminar el reactivo');
-    } finally {
-      setQuestionToDelete(null);
     }
   };
 
@@ -394,10 +421,14 @@ export function QuestionsAdmin() {
             Administra las preguntas del sistema de exámenes SICBA
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
           <Button variant="outline" onClick={downloadTemplate}>
             <DownloadIcon data-icon="inline-start" />
             Descargar Plantilla
+          </Button>
+          <Button variant="outline" onClick={downloadExport}>
+            <FileSpreadsheetIcon data-icon="inline-start" className="size-4 mr-2" />
+            Exportar Banco
           </Button>
           <Button onClick={openNewSheet}>
             <PlusCircleIcon data-icon="inline-start" />
@@ -482,11 +513,43 @@ export function QuestionsAdmin() {
 
       {/* Questions Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Reactivos Registrados ({questions.length})</CardTitle>
-          <CardDescription>
-            Vista previa del banco de preguntas con renderizado LaTeX
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <CardTitle>Reactivos Registrados ({questions.length})</CardTitle>
+            <CardDescription>
+              Vista previa del banco de preguntas con renderizado LaTeX
+            </CardDescription>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <Input 
+              placeholder="Buscar contenido..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1); // Reiniciar paginación al buscar
+              }}
+              className="w-full sm:w-64"
+            />
+            <Select 
+              value={subjectFilter} 
+              onValueChange={(v) => {
+                setSubjectFilter(v);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Todas las materias">
+                  {subjectFilter === 'ALL' ? 'Todas las materias' : subjects.find(s => s.id === subjectFilter)?.name}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas las materias</SelectItem>
+                {subjects.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -512,8 +575,29 @@ export function QuestionsAdmin() {
                       No hay reactivos registrados. Añade uno o sube un archivo Excel.
                     </TableCell>
                   </TableRow>
-                ) : questions.map((q) => {
-                  const diff = DIFFICULTY_LABELS[q.difficulty] || DIFFICULTY_LABELS[1];
+                ) : (() => {
+                  const filteredQuestions = questions.filter(q => {
+                    const matchesSearch = q.content.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesSubject = subjectFilter === 'ALL' || q.subjectId === subjectFilter;
+                    return matchesSearch && matchesSubject;
+                  });
+
+                  if (filteredQuestions.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          No se encontraron reactivos que coincidan con los filtros.
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  const paginated = filteredQuestions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+                  return (
+                    <>
+                      {paginated.map((q) => {
+                        const diff = DIFFICULTY_LABELS[q.difficulty] || DIFFICULTY_LABELS[1];
                   return (
                     <TableRow key={q.id}>
                       <TableCell>
@@ -541,11 +625,55 @@ export function QuestionsAdmin() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
+                })
+              }
+            </>
+          );
+        })()}
+      </TableBody>
+    </Table>
+  </div>
+  
+  {/* Paginación */}
+  {questions.length > 0 && (() => {
+    const filteredLength = questions.filter(q => {
+      const matchesSearch = q.content.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSubject = subjectFilter === 'ALL' || q.subjectId === subjectFilter;
+      return matchesSearch && matchesSubject;
+    }).length;
+
+    if (filteredLength === 0) return null;
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+        <p className="text-sm text-muted-foreground">
+          Mostrando del {(currentPage - 1) * itemsPerPage + 1} al {Math.min(currentPage * itemsPerPage, filteredLength)} de {filteredLength} reactivos
+        </p>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Anterior
+          </Button>
+          <div className="text-sm font-medium px-2">
+            Página {currentPage} de {Math.ceil(filteredLength / itemsPerPage)}
           </div>
-        </CardContent>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredLength / itemsPerPage), p + 1))}
+            disabled={currentPage === Math.ceil(filteredLength / itemsPerPage)}
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
+    );
+  })()}
+</CardContent>
       </Card>
       </TabsContent>
 
@@ -563,13 +691,15 @@ export function QuestionsAdmin() {
               Configura el contenido y las opciones de respuesta. Puedes usar sintaxis LaTeX.
             </SheetDescription>
           </SheetHeader>
-          <div className="flex flex-col gap-6 py-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="subject" className="text-right">Materia</Label>
+          <div className="flex flex-col gap-6 py-4 px-4 sm:px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="subject" className="font-medium">Materia</Label>
                 <Select value={formData.subjectId} onValueChange={(v) => setFormData({...formData, subjectId: v || ''})}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona materia" />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona materia">
+                      {subjects.find(s => s.id === formData.subjectId)?.name || 'Selecciona materia'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map(s => (
@@ -579,9 +709,9 @@ export function QuestionsAdmin() {
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Dificultad (1-3)</label>
+                <Label className="font-medium">Dificultad (1-3)</Label>
                 <Select value={String(formData.difficulty)} onValueChange={(v) => setFormData({...formData, difficulty: Number(v)})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Dificultad" />
                   </SelectTrigger>
                   <SelectContent>
@@ -655,7 +785,7 @@ export function QuestionsAdmin() {
               />
             </div>
           </div>
-          <SheetFooter className="mt-6 border-t pt-4">
+          <SheetFooter className="mt-6 border-t pt-4 flex flex-col sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => setIsSheetOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
@@ -675,7 +805,13 @@ export function QuestionsAdmin() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.currentTarget.disabled = true;
+                handleDelete(questionToDelete!);
+              }} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
