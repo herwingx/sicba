@@ -256,7 +256,7 @@ export function SubjectsAdmin() {
             <SheetTitle>{editingSubject ? 'Editar Materia' : 'Nueva Materia'}</SheetTitle>
             <SheetDescription>Configura los detalles de la materia.</SheetDescription>
           </SheetHeader>
-          <div className="flex flex-col gap-4 py-6">
+          <div className="flex flex-col gap-4 py-6 px-4 sm:px-6">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium">Nombre de la materia</label>
               <Input 
@@ -274,7 +274,7 @@ export function SubjectsAdmin() {
               />
             </div>
           </div>
-          <SheetFooter>
+          <SheetFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 px-4 pb-4">
             <Button variant="outline" onClick={() => setIsSheetOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2Icon data-icon="inline-start" className="animate-spin" />}

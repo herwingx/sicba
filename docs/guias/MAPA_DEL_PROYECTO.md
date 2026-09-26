@@ -17,8 +17,8 @@ Aquí vive el código que realmente "se enciende" y se expone a internet.
     *   **Archivos clave:**
         *   `src/index.ts`: El punto de entrada, donde el servidor se levanta y escucha en el puerto 3000.
         *   `src/routes/auth.ts`: Login y registro con JWT + bcryptjs. Control de Sesión Única Activa.
-        *   `src/routes/questions.ts`: CRUD del Banco de Reactivos y carga masiva `.xlsx` (multer + xlsx).
-        *   `src/routes/exams.ts`: **Motor de Exámenes** — crear (Borrador, `isActive:false`), publicar/despublicar (`PATCH /publish`), listar, inscribirse con código (`POST /enroll`), iniciar con reanudación (`savedAnswers`), registrar respuestas, calificar (`POST /submit`), consulta de resultado y desglose propio (`GET /api/exams/:id/my-result`), ranking admin (`GET /:id/results`). Eliminar protegido contra alumnos activos.
+        *   `src/routes/questions.ts`: CRUD del Banco de Reactivos, Exportación del banco a `.xlsx` (`GET /api/questions/export`), y carga masiva `.xlsx` hiper-optimizada con ejecución en lotes (batch) para prevenir bloqueos por timeout de PgBouncer.
+        *   `src/routes/exams.ts`: **Motor de Exámenes** — crear (Borrador, `isActive:false`), publicar/despublicar (`PATCH /publish`), listar, inscribirse con código (`POST /enroll`), iniciar con reanudación (`savedAnswers`), registrar respuestas, calificar (`POST /submit`), consulta de resultado y desglose propio (`GET /api/exams/:id/my-result`), ranking admin (`GET /:id/results`). Eliminar protegido contra alumnos activos. Enrutamiento seguro para prevenir el acceso encubierto a la etapa de inicio de examen (`403 Forbidden`).
         *   `src/routes/settings.ts`: Control de configuración global (`GET` y `PATCH /api/settings/registration`).
         *   `src/routes/subjects.ts`: Listar y crear materias (alimenta el Select del ExamManager).
         *   `src/middlewares/auth.middleware.ts`: Verifica JWT Y consulta la tabla `Session` en BD (Sesión Única).
@@ -29,9 +29,9 @@ Aquí vive el código que realmente "se enciende" y se expone a internet.
     *   **¿Qué hace?:** Login, Dashboard, Banco de Reactivos, Motor de Exámenes completo (crear, publicar, hacer con reanudación, ver resultados). Modo oscuro global.
     *   **Archivos clave:**
         *   `src/App.tsx`: Orquestador — 3 flujos: Login, ExamRoom (pantalla completa), Dashboard. Envuelto en `ThemeProvider`.
-        *   `src/pages/DashboardHome.tsx`: Panel con estadísticas.
-        *   `src/pages/QuestionsAdmin.tsx`: Banco de Reactivos con KaTeX y Drag & Drop.
-        *   `src/pages/ExamManager.tsx`: Gestión de exámenes — flujo Borrador→Publicar, AlertDialog de confirmación, toasts Sonner.
+        *   `src/pages/DashboardHome.tsx`: Panel con estadísticas, con consultas segmentadas estrictamente por `studentId` para precisión del historial analítico del alumno.
+        *   `src/pages/QuestionsAdmin.tsx`: Banco de Reactivos con KaTeX, Drag & Drop, Botón de Exportación Excel, Paginación del lado del cliente (15 items/página), buscador instantáneo textual y filtro por materia.
+        *   `src/pages/ExamManager.tsx`: Gestión de exámenes — flujo Borrador→Publicar, panel seguro de inicio de examen sin saltos de contexto. AlertDialog de confirmación, toasts Sonner.
         *   `src/pages/ExamRoom.tsx`: Sala de concurso con temporizador, anti-cierre (`beforeunload`), reanudación automática y pantalla "ya entregado".
         *   `src/pages/ExamResult.tsx`: Pantalla de resultado con puntaje y desglose.
         *   `src/pages/ReportsPage.tsx`: Panel analítico (Admin) con gráficos Recharts.
@@ -80,11 +80,12 @@ Todo lo que está aquí es **invisible para Git**.
 5. Cada petición subsecuente adjunta el JWT en el header `Authorization: Bearer <token>`.
 6. El middleware `requireAuth` valida el token Y consulta que exista en la tabla `Session` (anti-fraude).
 
-**Flujo de Carga Masiva:**
+**Flujo de Banco de Reactivos (Carga y Descarga):**
 1. El Admin arrastra un `.xlsx` a la zona Drag & Drop del Banco de Reactivos.
 2. El frontend hace `POST /api/questions/bulk` con el archivo como `multipart/form-data`.
-3. El backend lo procesa en memoria con `multer` + `xlsx`, e inserta todas las preguntas en una sola `prisma.$transaction`.
+3. El backend lo procesa en memoria con `multer` + `xlsx`. Para prevenir cuellos de botella con la base de datos (Ej. `P2028` en PgBouncer), las materias se compilan en un caché interno. Seguidamente, se crea una matriz (Array) de operaciones (`prisma.question.create`) y todas se mandan a insertar simultáneamente vía `prisma.$transaction([])` puro y atómico.
 4. Si algo falla, ninguna pregunta se guarda (Atomicidad).
+5. El Admin también puede presionar el botón "Exportar Banco", invocando la ruta `GET /api/questions/export` para descargar automáticamente una hoja `.xlsx` generada con la información vigente del sistema.
 
 **Flujo de Gestión de Materias, Usuarios y Exámenes (Sábado 7):**
 1. Las materias se cargan desde la API en un `Select`; al elegir materia se muestran las preguntas con sus nombres reales (no UUIDs).

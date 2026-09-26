@@ -5,6 +5,57 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [Actualización de Estabilidad y Experiencia de Usuario] — 2026-09-26 ✅ COMPLETO
+
+### Añadido (Exportación y UX del Banco de Reactivos)
+- **Exportación del Banco (`GET /api/questions/export`)**:
+  - Implementación de funcionalidad para exportar la totalidad de los reactivos actuales de la base de datos a un archivo Excel (`.xlsx`), incluyendo todas las opciones y metadatos de dificultad.
+  - Interfaz visual en `QuestionsAdmin` con nuevo botón "Exportar Banco".
+- **Filtrado y Búsqueda Inteligente (`QuestionsAdmin`)**:
+  - Paginación del lado del cliente aplicada a la vista de reactivos (15 elementos por página) previniendo pérdida de rendimiento en bancos voluminosos.
+  - Buscador textual instantáneo que filtra preguntas por coincidencia de contenido sin importar mayúsculas/minúsculas.
+  - Filtro integrado por materia (categoría) para visualizar reactivos segmentados.
+
+### Modificado (Motor de Exámenes y Backend)
+- **Refactorización de Carga Masiva de Excel (`POST /api/questions/bulk`)**:
+  - Corrección arquitectónica al modelo de transacción: Se migró de una transacción interactiva con búsqueda por ciclo (`findFirst`) a una compilación en memoria (array de operaciones) para su ejecución atómica mediante transacción secuencial pura. Esto elimina las excepciones críticas (P2028 Interactive Transactions) lanzadas por timeouts bajo `PgBouncer` en la infraestructura productiva.
+  - Inclusión de capa de caché nativo (Map) para mitigar el volumen de llamadas y acelerar el procesamiento de Excel que superen las 1,000 celdas de forma drástica.
+- **Corrección en Dashboard de Estudiantes (`DashboardHome`)**:
+  - Reprogramación de la solicitud analítica (`GET /api/stats`) para rol `ALUMNO` apuntando al campo correcto en la estructura de base de datos (`studentId` en vez de `userId`). Con esto, el alumno recobra visibilidad exacta de sus participaciones finalizadas y promedios históricos.
+
+### Seguridad y Consistencia
+- **Defensa contra Accesos Directos a Exámenes (`ExamRoom` / `ExamManager`)**:
+  - Mitigación del defecto *Race Condition* derivado del doble renderizado en React que colapsaba el API (`POST /api/exams/:id/start`).
+  - Bloqueo en Servidor: El endpoint `/start` ya no inserta participaciones de forma encubierta y espontánea. Si un estudiante burla la interfaz, el sistema intercepta la petición y expulsa con error HTTP `403 (Forbidden)` demandando inscripción legal (`PENDING`).
+  - Lógica visual endurecida: La tabla de concursos para alumnos oculta proactivamente la posibilidad de "Ingresar" si la validación del backend confirma ausencia de inscripción; requiriendo pasar sí o sí por el botón "Inscribirse" (Ingreso de Código) para legitimar el estado de participación.
+- **Corrección del Listado de Exámenes para Alumnos (`GET /api/exams`)**:
+  - Se eliminó la filtración por `isActive: true` que exponía todos los exámenes publicados a cualquier alumno registrado — incluyendo cuentas nuevas sin inscripción.
+  - Ahora el listado filtra exclusivamente por participaciones existentes (`participations: { some: { studentId } }`), garantizando que solo aparezcan exámenes a los que el alumno se inscribió legalmente con un código.
+
+### Añadido (Gestión Dinámica de Dominios de Registro)
+- **Configuración de Dominios Permitidos (`GET/PATCH /api/settings/domains`)**:
+  - Nuevo par de endpoints en el backend para leer y actualizar los dominios de correo electrónico aceptados para registro de alumnos, almacenados dinámicamente en la tabla `SystemSetting` (llave `ALLOWED_DOMAINS`).
+  - Eliminación del filtro estático hardcodeado `@mina.tecnm.mx` en `auth.ts`. La validación ahora consulta la base de datos en tiempo real y acepta múltiples dominios separados por coma.
+  - Mensaje de error dinámico al rechazar un correo: muestra la lista exacta de dominios configurados.
+- **Panel de Dominios en Configuración (`SettingsPage`)**:
+  - Nueva tarjeta (Card) en la vista de Ajustes del Sistema para gestionar los dominios permitidos.
+  - Campo de texto editable con botón "Guardar Dominios" y notificaciones de éxito/error.
+  - Layout responsivo actualizado a 3 columnas (`xl:grid-cols-3`) para acomodar las 3 tarjetas en una sola fila.
+
+### Añadido (CRUD Completo de Usuarios)
+- **Edición de Usuarios (`PATCH /api/users/:id`)**:
+  - Endpoint protegido para que el Admin pueda modificar nombre, apellidos, correo, semestre y contraseña de cualquier usuario.
+  - Validación de duplicidad de correo (409 Conflict) y re-hasheo automático de contraseña con bcrypt.
+- **Eliminación Individual de Usuarios (`DELETE /api/users/:id`)**:
+  - Endpoint con 3 capas de protección: (1) No permite auto-eliminación del admin, (2) Bloquea si el usuario tiene un examen `IN_PROGRESS` (409 Conflict), (3) Eliminación en cascada segura (Profile, Sessions).
+- **Interfaz de Gestión de Usuarios (`UsersAdmin`)**:
+  - Columna "Acciones" con botones de Editar (✏️ Dialog modal con campos pre-llenados) y Eliminar (🗑️ AlertDialog de confirmación roja).
+  - Detección del usuario actual: la fila del admin logueado muestra un badge "Tú" en vez de botones de acción, previniendo confusión visual.
+- **Actualización del Formulario de Login (`login-form.tsx`)**:
+  - Placeholders genéricos (`usuario@dominio.com`) en lugar de dominio institucional fijo para adaptarse a la configuración dinámica.
+
+---
+
 ## [Sábado 8 (Entrega Final)] — 2026-09-21 ✅ COMPLETO
 
 ### Añadido (Panel Analítico e Historiales)
