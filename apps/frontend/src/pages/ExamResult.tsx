@@ -64,23 +64,23 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
   const getScoreLevel = () => {
     if (score >= 90) return {
       label: '¡Excelente!',
-      color: 'text-green-600 dark:text-green-400',
-      bg: 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
+      color: 'text-primary',
+      bg: 'bg-primary/10 border-primary/20',
     }
     if (score >= 70) return {
       label: '¡Muy bien!',
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800',
+      color: 'text-secondary-foreground',
+      bg: 'bg-secondary/10 border-border',
     }
     if (score >= 60) return {
       label: 'Suficiente',
-      color: 'text-yellow-600 dark:text-yellow-400',
-      bg: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800',
+      color: 'text-accent-foreground',
+      bg: 'bg-accent/10 border-border',
     }
     return {
       label: 'Necesitas repasar',
-      color: 'text-red-600 dark:text-red-400',
-      bg: 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+      color: 'text-destructive',
+      bg: 'bg-destructive/10 border-destructive/20',
     }
   }
 
@@ -115,20 +115,20 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
         <CardContent className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2Icon className="size-5 text-green-600" />
+              <CheckCircle2Icon className="size-5 text-primary" />
               <span className="text-sm">Correctas</span>
             </div>
-            <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+            <Badge className="bg-primary/20 text-primary">
               {correctCount} / {totalQuestions}
             </Badge>
           </div>
           <Separator />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <XCircleIcon className="size-5 text-red-500" />
+              <XCircleIcon className="size-5 text-destructive" />
               <span className="text-sm">Incorrectas o sin contestar</span>
             </div>
-            <Badge className="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+            <Badge className="bg-destructive/10 text-destructive">
               {wrongCount} / {totalQuestions}
             </Badge>
           </div>
@@ -155,8 +155,8 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
             const icon = item.selectedOptionId === null
               ? <MinusCircleIcon className="size-5 text-muted-foreground shrink-0 mt-0.5" />
               : item.isCorrect
-                ? <CheckCircle2Icon className="size-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-                : <XCircleIcon className="size-5 text-red-500 shrink-0 mt-0.5" />
+                ? <CheckCircle2Icon className="size-5 text-primary shrink-0 mt-0.5" />
+                : <XCircleIcon className="size-5 text-destructive shrink-0 mt-0.5" />
 
             return (
               <Card
@@ -164,10 +164,10 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
                 className={cn(
                   'overflow-hidden transition-all',
                   item.isCorrect
-                    ? 'border-green-200 dark:border-green-800'
+                    ? 'border-primary'
                     : item.selectedOptionId === null
                       ? 'border-border'
-                      : 'border-red-200 dark:border-red-800'
+                      : 'border-destructive'
                 )}
               >
                 {/* Header de la pregunta — clic para expandir */}
@@ -204,17 +204,17 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
                             className={cn(
                               'flex items-start gap-2 rounded-md px-3 py-2 text-sm border',
                               isCorrectOpt
-                                ? 'border-green-400 bg-green-50 dark:bg-green-950/30 dark:border-green-700'
+                                ? 'border-primary bg-primary/10'
                                 : isSelected && !isCorrectOpt
-                                  ? 'border-red-400 bg-red-50 dark:bg-red-950/30 dark:border-red-700'
+                                  ? 'border-destructive bg-destructive/10'
                                   : 'border-border bg-background'
                             )}
                           >
                             <span className="shrink-0 mt-0.5">
                               {isCorrectOpt
-                                ? <CheckCircle2Icon className="size-4 text-green-600 dark:text-green-400" />
+                                ? <CheckCircle2Icon className="size-4 text-primary" />
                                 : isSelected
-                                  ? <XCircleIcon className="size-4 text-red-500" />
+                                  ? <XCircleIcon className="size-4 text-destructive" />
                                   : <span className="size-4 inline-block" />
                               }
                             </span>
@@ -222,12 +222,12 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
                               <Latex>{opt.content}</Latex>
                             </span>
                             {isSelected && !isCorrectOpt && (
-                              <Badge variant="outline" className="ml-auto shrink-0 text-xs text-red-600 border-red-300">
+                              <Badge variant="outline" className="ml-auto shrink-0 text-xs text-destructive border-destructive">
                                 Tu respuesta
                               </Badge>
                             )}
                             {isCorrectOpt && (
-                              <Badge className="ml-auto shrink-0 text-xs bg-green-600 dark:bg-green-700 text-white">
+                              <Badge className="ml-auto shrink-0 text-xs bg-primary text-primary-foreground">
                                 Correcta
                               </Badge>
                             )}
@@ -243,9 +243,9 @@ export function ExamResult({ score, correctCount, totalQuestions, breakdown = []
 
                     {/* Explicación si existe */}
                     {item.explanation && (
-                      <div className="flex gap-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2.5">
-                        <LightbulbIcon className="size-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                        <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                      <div className="flex gap-2 rounded-md bg-muted border border-border px-3 py-2.5">
+                        <LightbulbIcon className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           <Latex>{item.explanation}</Latex>
                         </p>
                       </div>

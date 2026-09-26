@@ -80,7 +80,7 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-50 font-sans border-l border-slate-800">
       <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex items-center gap-2">
-        <ShieldAlertIcon className="size-5 text-red-500" />
+        <ShieldAlertIcon className="size-5 text-destructive" />
         <h2 className="font-semibold text-lg">Registro Antifraude</h2>
         <Badge variant="destructive" className="ml-auto rounded-full px-2">
           {logs.length}
@@ -89,7 +89,7 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {logs.length === 0 ? (
-          <div className="text-center py-10 text-slate-500">
+          <div className="text-center py-10 text-muted-foreground">
             <ShieldAlertIcon className="size-10 mx-auto mb-3 opacity-20" />
             <p>No se han detectado incidencias.</p>
           </div>
@@ -105,7 +105,7 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
                 <div className="flex flex-col gap-2 pl-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm text-slate-200 truncate pr-2">{name}</span>
-                    <span className="text-xs font-mono text-slate-500">{time}</span>
+                    <span className="text-xs font-mono text-muted-foreground">{time}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <Badge variant="outline" className={`font-normal border ${actionDef.color} gap-1 px-1.5 py-0.5 text-xs`}>

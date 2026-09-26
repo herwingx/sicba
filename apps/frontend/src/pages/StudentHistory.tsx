@@ -117,7 +117,7 @@ export function StudentHistory() {
                         {exam.timeLimit} min máx.
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className={`text-lg font-bold ${isPassing ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
+                        <span className={`text-lg font-bold ${isPassing ? 'text-primary' : 'text-destructive'}`}>
                           {score.toFixed(1)}%
                         </span>
                       </TableCell>

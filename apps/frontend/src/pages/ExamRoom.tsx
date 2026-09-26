@@ -354,8 +354,8 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     return (
       <div className="flex flex-col items-center justify-center gap-6 p-10 min-h-[60vh]">
         <div className="flex flex-col items-center gap-3 text-center max-w-md">
-          <div className="size-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle2Icon className="size-8 text-green-600 dark:text-green-400" />
+          <div className="size-14 rounded-full bg-primary/20 flex items-center justify-center">
+            <CheckCircle2Icon className="size-8 text-primary" />
           </div>
           <h2 className="text-xl font-bold">Ya entregaste este examen</h2>
           <p className="text-sm text-muted-foreground">
@@ -388,7 +388,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
       <div className="flex-1 w-full min-w-0 flex flex-col gap-4">
         {/* Banner de reanudación */}
         {resumed && (
-          <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-4 py-2.5 text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
+          <div className="rounded-md bg-muted border border-border px-4 py-2.5 text-muted-foreground text-sm flex items-center gap-2">
             <RotateCcwIcon className="size-4 shrink-0" />
             Examen reanudado — tus respuestas anteriores fueron recuperadas.
           </div>
@@ -402,7 +402,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
           <div className={cn(
             'flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-sm font-semibold transition-colors shrink-0 ml-2',
             timeDanger ? 'bg-destructive text-destructive-foreground animate-pulse' :
-            timeWarning ? 'bg-orange-100 text-orange-700 border border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700' :
+            timeWarning ? 'bg-destructive/20 text-destructive border-destructive' :
             'bg-muted text-muted-foreground'
           )}>
             <ClockIcon className="size-4" />
@@ -443,7 +443,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={cn("h-8 gap-1.5", markedForReview[question.name] ? "text-orange-500 bg-orange-50 dark:bg-orange-950/30" : "text-muted-foreground")}
+                    className={cn("h-8 gap-1.5", markedForReview[question.name] ? "text-primary bg-primary/20" : "text-muted-foreground")}
                     onClick={() => toggleMarkForReview(question.name)}
                   >
                     <FlagIcon className={cn("size-4", markedForReview[question.name] && "fill-orange-500")} />
@@ -491,7 +491,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
                   <Button
                     onClick={() => setConfirmOpen(true)}
                     disabled={submitting}
-                    className="bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     {submitting
                       ? <><Loader2Icon data-icon="inline-start" className="animate-spin" />Entregando...</>
@@ -527,13 +527,13 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
                   className={cn(
                     "h-10 w-full p-0 font-mono text-sm relative transition-all",
                     isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
-                    isMarked && !isActive ? "border-orange-400 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400" : ""
+                    isMarked && !isActive ? "border-primary bg-primary/10 text-primary" : ""
                   )}
                   onClick={() => setCurrentIndex(idx)}
                 >
                   {idx + 1}
                   {isMarked && (
-                    <FlagIcon className={cn("size-3 absolute -top-1 -right-1", isActive ? "text-primary-foreground fill-primary-foreground" : "text-orange-500 fill-orange-500")} />
+                    <FlagIcon className={cn("size-3 absolute -top-1 -right-1", isActive ? "text-primary-foreground fill-primary-foreground" : "text-primary fill-primary")} />
                   )}
                 </Button>
               )
@@ -548,14 +548,14 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
               <div className="size-3 rounded-full bg-background border" /> Pendiente
             </div>
             <div className="flex items-center gap-2">
-              <div className="size-3 rounded-full bg-orange-100 border border-orange-300 dark:bg-orange-900/50" /> Para revisión
+              <div className="size-3 rounded-full bg-primary border border-primary/50" /> Para revisión
             </div>
           </div>
           
           <Button
             onClick={() => setConfirmOpen(true)}
             disabled={submitting}
-            className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
+            className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <SendIcon className="mr-2 size-4" /> Terminar Examen
           </Button>
@@ -571,7 +571,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
             <AlertDialogDescription>
               Has respondido <strong>{answeredCount}</strong> de <strong>{questions.length}</strong> preguntas.
               {answeredCount < questions.length && (
-                <span className="block mt-1 text-orange-600 dark:text-orange-400 font-medium">
+                <span className="block mt-1 text-primary font-medium">
                   ⚠️ Tienes {questions.length - answeredCount} pregunta(s) sin responder.
                 </span>
               )}

@@ -596,15 +596,21 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                       <TableCell className="text-center text-sm">{exam._count.participations}</TableCell>
                       <TableCell className="text-sm">{exam.timeLimit} min</TableCell>
                       <TableCell>
-                        {isLive && <Badge className="bg-green-600 dark:bg-green-700 text-white">En vivo</Badge>}
-                        {isUpcoming && <Badge variant="secondary">Próximamente</Badge>}
-                        {isDraft && <Badge variant="outline" className="text-muted-foreground">Borrador</Badge>}
-                        {isFinished && <Badge variant="outline">Finalizado</Badge>}
+                        {!isAdmin && myPart?.status === 'SUBMITTED' ? (
+                          <Badge variant="outline" variant="secondary" className="text-secondary-foreground">Terminado</Badge>
+                        ) : (
+                          <>
+                            {isLive && <Badge variant="default" className="bg-primary text-primary-foreground">En vivo</Badge>}
+                            {isUpcoming && <Badge variant="secondary">Próximamente</Badge>}
+                            {isDraft && <Badge variant="outline" className="text-muted-foreground">Borrador</Badge>}
+                            {isFinished && <Badge variant="outline">Finalizado</Badge>}
+                          </>
+                        )}
                       </TableCell>
                       {!isAdmin && (
                         <TableCell className="text-center">
                           {myPart?.status === 'SUBMITTED' && myPart.score !== null ? (
-                            <Badge variant="secondary" className="font-bold border-green-200 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                            <Badge variant="secondary" variant="secondary" className="font-bold text-secondary-foreground">
                               {myPart.score}%
                             </Badge>
                           ) : (
@@ -646,10 +652,10 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                               onClick={() => onOpenScoreboard?.(exam.id)}
                               title="Live Scoreboard"
                             >
-                              <div className="flex items-center gap-1.5 text-blue-500">
+                              <div className="flex items-center gap-1.5 text-primary">
                                 <span className="relative flex size-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full size-2 bg-blue-500"></span>
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full size-2 bg-primary"></span>
                                 </span>
                                 Live
                               </div>
@@ -921,7 +927,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
 
           {/* Aviso cuando está publicado */}
           {editingExam?.isActive && (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground">
               <AlertCircleIcon className="size-4 shrink-0 mt-0.5" />
               <p>Las preguntas y el título no pueden editarse una vez publicado para proteger la integridad del examen.</p>
             </div>
@@ -1003,7 +1009,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                   <p className="text-xs text-muted-foreground mt-0.5">Participantes</p>
                 </div>
                 <div className="rounded-lg bg-background/60 border px-3 py-2 text-center">
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  <p className="text-2xl font-bold text-primary">
                     {examResults.filter(r => r.status === 'SUBMITTED').length}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Entregados</p>
@@ -1018,7 +1024,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                   <p className="text-xs text-muted-foreground mt-0.5">Promedio</p>
                 </div>
                 <div className="rounded-lg bg-background/60 border px-3 py-2 text-center">
-                  <p className="text-2xl font-bold text-amber-500">
+                  <p className="text-2xl font-bold text-accent-foreground">
                     {examResults.find(r => r.rank === 1)?.score?.toFixed(1) ?? '—'}
                     {examResults.find(r => r.rank === 1)?.score !== undefined && '%'}
                   </p>
@@ -1072,7 +1078,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                     return (
                       <TableRow
                         key={res.participationId}
-                        className={isTop ? 'bg-amber-500/5 dark:bg-amber-500/8' : ''}
+                        className={isTop ? \'bg-muted\' : \'\'}
                       >
                         <TableCell className="text-center">
                           {medal ? (
@@ -1091,11 +1097,11 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                         </TableCell>
                         <TableCell className="text-center">
                           {res.status === 'SUBMITTED' ? (
-                            <Badge variant="outline" className="border-green-300 text-green-700 bg-green-50 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 text-xs">
+                            <Badge variant="outline" className="text-xs" variant="secondary">
                               ✓ Entregado
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 text-xs">
+                            <Badge variant="outline" className="text-xs text-muted-foreground" variant="outline">
                               ⏳ En curso
                             </Badge>
                           )}
@@ -1108,9 +1114,9 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                         <TableCell className="text-right">
                           {res.score !== null ? (
                             <span className={`font-bold text-sm tabular-nums ${
-                              res.score >= 90 ? 'text-green-600 dark:text-green-400' :
-                              res.score >= 70 ? 'text-blue-600 dark:text-blue-400' :
-                              'text-red-500 dark:text-red-400'
+                              res.score >= 90 ? 'text-primary' :
+                              res.score >= 70 ? 'text-secondary-foreground' :
+                              'text-destructive'
                             }`}>
                               {res.score.toFixed(1)}%
                             </span>
