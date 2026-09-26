@@ -243,7 +243,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
           <div className="relative hidden bg-muted md:block">
             <img src="/login-bg.jpg" alt="SICBA" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-primary/10 flex flex-col items-center justify-end p-8 text-center">
-              <p className="text-sm font-medium text-primary/80 dark:text-primary/90 backdrop-blur-md bg-white/60 dark:bg-black/50 rounded-lg px-4 py-2">
+              <p className="text-sm font-semibold leading-relaxed text-slate-950 dark:text-white backdrop-blur-md bg-white/90 dark:bg-slate-950/90 rounded-lg px-4 py-2 shadow-lg ring-1 ring-black/10 dark:ring-white/15">
                 "La preparación académica rigurosa es la base del éxito profesional."
               </p>
             </div>

@@ -223,27 +223,27 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-destructive/50">
+      <Card className="border-red-300/80 bg-red-50/70 dark:border-red-900 dark:bg-red-950/20">
         <CardHeader>
-          <CardTitle className="text-destructive flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
             <AlertTriangleIcon className="size-5" />
             Zona de Peligro
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-foreground/80">
             Acciones irreversibles de mantenimiento de base de datos. Usar con extrema precaución al inicio de un nuevo ciclo escolar.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+          <div className="flex flex-col items-start justify-between gap-4 rounded-lg border border-red-200 bg-white/80 p-4 sm:flex-row sm:items-center dark:border-red-900/80 dark:bg-background/70">
             <div className="space-y-1 mb-4 sm:mb-0">
-              <h4 className="text-sm font-medium text-destructive">Purgar Padrón de Alumnos</h4>
-              <p className="text-xs text-destructive/80 max-w-md">
-                Elimina permanentemente a todos los usuarios con rol de ALUMNO y borra todo su historial de calificaciones, participaciones y perfiles. Los Exámenes y Reactivos se mantienen.
+              <h4 className="text-sm font-semibold text-red-700 dark:text-red-300">Purgar Padrón de Alumnos</h4>
+              <p className="max-w-md text-xs leading-relaxed text-foreground/80">
+                Elimina las cuentas de alumnos y todo su historial de calificaciones, participaciones y perfiles. Los exámenes y reactivos se conservarán.
               </p>
             </div>
-            <Button variant="destructive" onClick={() => setPurgeAlertOpen(true)} disabled={purging}>
+            <Button variant="destructive" className="w-full bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700 sm:w-auto" onClick={() => setPurgeAlertOpen(true)} disabled={purging}>
               {purging ? <Loader2Icon className="animate-spin mr-2 size-4" /> : <Trash2 className="mr-2 size-4" />}
-              {purging ? 'Purgando...' : 'Purgar Alumnos'}
+              {purging ? 'Purgando...' : 'Purgar alumnos'}
             </Button>
           </div>
         </CardContent>
