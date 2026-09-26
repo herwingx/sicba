@@ -78,8 +78,8 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-50 font-sans border-l border-slate-800">
-      <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex items-center gap-2">
+    <div className="flex flex-col h-full bg-card text-card-foreground font-sans border-l border-border rounded-r-xl">
+      <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-2">
         <ShieldAlertIcon className="size-5 text-destructive" />
         <h2 className="font-semibold text-lg">Registro Antifraude</h2>
         <Badge variant="destructive" className="ml-auto rounded-full px-2">
@@ -100,11 +100,11 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
             const time = new Date(log.timestamp).toLocaleTimeString();
 
             return (
-              <Card key={log.id} className="bg-slate-900/80 border-slate-800 p-3 shadow-none overflow-hidden relative">
+              <Card key={log.id} className="bg-background/80 border-border p-3 shadow-none overflow-hidden relative">
                 <div className={`absolute top-0 left-0 w-1 h-full ${actionDef.color.split(' ')[0].replace('text-', 'bg-')}`} />
                 <div className="flex flex-col gap-2 pl-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm text-slate-200 truncate pr-2">{name}</span>
+                    <span className="font-medium text-sm text-foreground truncate pr-2">{name}</span>
                     <span className="text-xs font-mono text-muted-foreground">{time}</span>
                   </div>
                   <div className="flex items-center justify-between">

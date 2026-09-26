@@ -1078,7 +1078,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                     return (
                       <TableRow
                         key={res.participationId}
-                        className={isTop ? \'bg-muted\' : \'\'}
+                        className={isTop ? 'bg-muted' : ''}
                       >
                         <TableCell className="text-center">
                           {medal ? (
