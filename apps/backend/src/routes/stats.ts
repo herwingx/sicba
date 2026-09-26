@@ -39,11 +39,11 @@ router.get('/', requireAuth, async (req, res) => {
         totalExams
       ] = await Promise.all([
         prisma.participation.count({
-          where: { userId: user.id, status: 'SUBMITTED' }
+          where: { studentId: user.id, status: 'SUBMITTED' }
         }),
         prisma.participation.aggregate({
           _avg: { score: true },
-          where: { userId: user.id, status: 'SUBMITTED' }
+          where: { studentId: user.id, status: 'SUBMITTED' }
         }),
         prisma.exam.count({ where: { isActive: true } })
       ]);

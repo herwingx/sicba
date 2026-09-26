@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import Latex from 'react-latex-next'
+import 'katex/dist/katex.min.css'
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from '@/components/ui/card'
@@ -138,6 +140,7 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   const [exams, setExams] = useState<Exam[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
+  const [questionsLoading, setQuestionsLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [subjectsLoading, setSubjectsLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -218,6 +221,7 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
    * @param subjectId Identificador de la materia a consultar.
    */
   const loadQuestions = async (subjectId: string) => {
+    setQuestionsLoading(true)
     try {
       const res = await fetch(`${API}/api/questions?subjectId=${subjectId}`, { headers })
       if (res.ok) {
@@ -225,6 +229,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
         setQuestions(Array.isArray(data) ? data : (data.questions ?? []))
       }
     } catch { /* silencioso */ }
+    finally {
+      setQuestionsLoading(false)
+    }
   }
 
   useEffect(() => { loadExams(); loadSubjects() }, [])
@@ -301,10 +308,11 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   /**
    * Ejecuta la eliminación del examen seleccionado y actualiza la lista.
    */
-  const handleDelete = async () => {
-    if (!deleteTargetId) return
+  const handleDelete = async (id: string) => {
+    if (!id) return
+    setDeleteTargetId(null)
     try {
-      const res = await fetch(`${API}/api/exams/${deleteTargetId}`, {
+      const res = await fetch(`${API}/api/exams/${id}`, {
         method: 'DELETE',
         headers,
       })
@@ -317,8 +325,6 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
       }
     } catch {
       toast.error('Error de conexión al intentar eliminar.')
-    } finally {
-      setDeleteTargetId(null)
     }
   }
 
@@ -470,16 +476,7 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
   // del flujo de participación (alumno).
   const isAdmin = role === 'ADMIN' || role === 'MAESTRO'
 
-  /**
-   * Trunca el contenido de una pregunta y remueve fórmulas LaTeX para previsualización en la lista.
-   *
-   * @param content Texto original de la pregunta.
-   * @param max Longitud máxima permitida antes de truncar con elipsis.
-   */
-  const truncateQuestion = (content: string, max = 72) => {
-    const clean = content.replace(/\$[^$]*\$/g, '[fórmula]').replace(/\\[a-zA-Z]+\{[^}]*\}/g, '[fórmula]')
-    return clean.length > max ? clean.slice(0, max) + '…' : clean
-  }
+
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -497,7 +494,15 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
             Actualizar
           </Button>
           {isAdmin ? (
-            <Button onClick={() => { setDialogOpen(true); loadSubjects() }}>
+            <Button onClick={() => { 
+              setForm({ title: '', subjectId: '', timeLimit: '60' })
+              setStartDate(undefined)
+              setEndDate(undefined)
+              setSelectedQuestionIds([])
+              setQuestions([])
+              setDialogOpen(true)
+              loadSubjects() 
+            }}>
               <PlusCircleIcon className="size-4 mr-2" />
               Crear Examen
             </Button>
@@ -606,8 +611,14 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
                         </TableCell>
                       )}
                       <TableCell className="text-right">
-                        {/* Alumno: botón ingresar o ver resultado */}
-                        {!isAdmin && isLive && myPart?.status !== 'SUBMITTED' && (
+                        {/* Alumno: botón inscribir, ingresar o ver resultado */}
+                        {!isAdmin && isLive && !myPart && (
+                          <Button size="sm" variant="outline" onClick={() => setEnrollOpen(true)}>
+                            <KeyIcon className="size-3.5 mr-1" />
+                            Inscribirse
+                          </Button>
+                        )}
+                        {!isAdmin && isLive && myPart && myPart.status !== 'SUBMITTED' && (
                           <Button size="sm" onClick={() => onEnterExam?.(exam.id)}>
                             Ingresar
                           </Button>
@@ -690,7 +701,10 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.currentTarget.disabled = true;
+                handleDelete(deleteTargetId!);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Sí, eliminar
@@ -765,7 +779,9 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
               ) : subjects.length > 0 ? (
                 <Select value={form.subjectId} onValueChange={(val) => handleSubjectChange(val || '')}>
                   <SelectTrigger id="exam-subject">
-                    <SelectValue placeholder="Selecciona una materia" />
+                    <SelectValue placeholder="Selecciona una materia">
+                      {subjects.find(s => s.id === form.subjectId)?.name || 'Selecciona una materia'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map((s) => (
@@ -786,13 +802,29 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
             </div>
 
             {/* Preguntas — nombres reales, no UUIDs */}
-            {questions.length > 0 ? (
+            {questionsLoading ? (
+              <div className="grid gap-2">
+                <Label>Cargando preguntas...</Label>
+                <div className="border rounded-md divide-y h-52 overflow-hidden flex flex-col">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-start gap-3 px-3 py-3 w-full animate-pulse">
+                      <div className="size-4 shrink-0 rounded bg-muted" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-full bg-muted rounded" />
+                        <div className="h-4 w-3/4 bg-muted rounded" />
+                      </div>
+                      <div className="h-4 w-12 shrink-0 bg-muted rounded ml-1" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : questions.length > 0 ? (
               <div className="grid gap-2">
                 <Label>
                   Preguntas del Banco{' '}
                   <span className="text-muted-foreground text-xs">({selectedQuestionIds.length} seleccionadas)</span>
                 </Label>
-                <div className="border rounded-md divide-y max-h-52 overflow-y-auto">
+                <div className="border rounded-md divide-y h-52 overflow-y-auto">
                   {questions.map((q) => {
                     const selected = selectedQuestionIds.includes(q.id)
                     return (
@@ -805,8 +837,10 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
                           {selected && <CheckIcon className="size-3 text-primary-foreground" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          {/* Nombre real del reactivo, no UUID */}
-                          <p className="leading-snug">{truncateQuestion(q.content)}</p>
+                          {/* Nombre real del reactivo con soporte LaTeX y truncamiento por CSS */}
+                          <div className="leading-snug line-clamp-2 overflow-hidden text-ellipsis">
+                            <Latex>{q.content}</Latex>
+                          </div>
                         </div>
                         <Badge variant="outline" className="shrink-0 text-xs ml-1">
                           {'⭐'.repeat(q.difficulty)}

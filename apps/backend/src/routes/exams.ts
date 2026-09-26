@@ -71,7 +71,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
       where: role === 'ALUMNO' 
         ? (isHistory 
             ? { participations: { some: { studentId: userId, status: 'SUBMITTED' } } }
-            : { isActive: true }
+            : { participations: { some: { studentId: userId } } }
           )
         : undefined,
       include: {
@@ -451,13 +451,11 @@ router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
     }) as ParticipationWithAnswers | null;
 
     if (!participation) {
-      participation = await prisma.participation.create({
-        data: {
-          examId,
-          studentId,
-          status: 'IN_PROGRESS',
-          startedAt: new Date(),
-        },
+      return res.status(403).json({ error: 'No estás inscrito en este examen. Ingresa el código de acceso primero.' });
+    } else if (participation.status === 'PENDING') {
+      participation = await prisma.participation.update({
+        where: { id: participation.id },
+        data: { status: 'IN_PROGRESS', startedAt: new Date() },
         include: { answers: true },
       }) as ParticipationWithAnswers;
     } else if (!participation.startedAt) {
