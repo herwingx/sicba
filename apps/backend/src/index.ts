@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
 // Se usará el cliente importado desde nuestro monorepo
 import { prisma } from '@sicba/database';
+import { initSocket } from './socket';
 
 import authRoutes from './routes/auth';
 import questionsRoutes from './routes/questions';
@@ -18,6 +20,10 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Crear servidor HTTP para Socket.io
+const httpServer = createServer(app);
+initSocket(httpServer);
 
 /// Middlewares base para seguridad y compresión
 app.use(helmet());
@@ -48,6 +54,7 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
+  console.log(`🔌 WebSockets habilitados`);
 });

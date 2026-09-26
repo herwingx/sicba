@@ -65,6 +65,9 @@ export function UsersAdmin() {
   const [editLastName, setEditLastName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editSemester, setEditSemester] = useState('');
+  const [editControlNumber, setEditControlNumber] = useState('');
+  const [editInstitution, setEditInstitution] = useState('');
+  const [editCategory, setEditCategory] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
@@ -121,6 +124,9 @@ export function UsersAdmin() {
     setEditLastName(user.lastName || '');
     setEditEmail(user.email || '');
     setEditSemester(user.semester ? user.semester.toString() : '');
+    setEditControlNumber(user.controlNumber || '');
+    setEditInstitution(user.institution || '');
+    setEditCategory(user.category || '');
     setEditPassword('');
     setEditOpen(true);
   };
@@ -143,6 +149,9 @@ export function UsersAdmin() {
           firstName: editFirstName,
           lastName: editLastName,
           semester: editSemester || null,
+          controlNumber: editControlNumber || null,
+          institution: editInstitution || null,
+          category: editCategory || null,
           password: editPassword || undefined,
         }),
       });
@@ -261,6 +270,7 @@ export function UsersAdmin() {
                     <TableCell>{formatRole(user.role)}</TableCell>
                     <TableCell className="text-sm">
                       {user.career ? `${user.career} (${user.semester}º)` : user.semester ? `${user.semester}º Semestre` : '—'}
+                      {user.institution && <div className="text-xs text-muted-foreground">{user.institution}</div>}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground font-mono">
                       {new Date(user.createdAt).toLocaleDateString()}
@@ -312,19 +322,37 @@ export function UsersAdmin() {
               <Input id="editEmail" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
             </div>
             {editUser?.role === 'ALUMNO' && (
-              <div className="space-y-2">
-                <Label htmlFor="editSemester">Semestre</Label>
-                <Select value={editSemester} onValueChange={setEditSemester}>
-                  <SelectTrigger id="editSemester">
-                    <SelectValue placeholder="Seleccionar semestre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>{num}º Semestre</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editControlNumber">Número de Control</Label>
+                    <Input id="editControlNumber" value={editControlNumber} onChange={(e) => setEditControlNumber(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editSemester">Semestre</Label>
+                    <Select value={editSemester} onValueChange={setEditSemester}>
+                      <SelectTrigger id="editSemester">
+                        <SelectValue placeholder="Seleccionar semestre" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                          <SelectItem key={num} value={num.toString()}>{num}º Semestre</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editInstitution">Institución</Label>
+                    <Input id="editInstitution" value={editInstitution} onChange={(e) => setEditInstitution(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editCategory">Categoría</Label>
+                    <Input id="editCategory" value={editCategory} onChange={(e) => setEditCategory(e.target.value)} />
+                  </div>
+                </div>
+              </>
             )}
             <div className="space-y-2">
               <Label htmlFor="editPassword">Nueva Contraseña</Label>

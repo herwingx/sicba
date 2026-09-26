@@ -38,6 +38,12 @@ model User {
   /// Sesiones activas (para control de concurrencia y fraude)
   sessions Session[]
 
+  /// Bitácora de incidencias (antifraude)
+  auditLogs AuditLog[]
+
+  /// Participaciones en exámenes (ALUMNO)
+  participations Participation[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -55,6 +61,11 @@ model Profile {
   /// Ejemplo: "ISC", "Mecatrónica". Puede ser null si es maestro o admin.
   career   String?
   semester Int?
+
+  /// Campos específicos para el concurso (SRS RF-1)
+  controlNumber String? @unique
+  institution   String?
+  category      String?
 
   /// Estaciones o computadoras asignadas
   station String?
@@ -141,6 +152,7 @@ model Exam {
 
   questions      ExamQuestion[]
   participations Participation[]
+  auditLogs      AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,7 +179,7 @@ model Participation {
   exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   studentId String
-  /// Referencia a Profile u User. Usaremos User por simplicidad y consistencia
+  user      User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   /// Estado del examen del alumno
   status ParticipationStatus @default(PENDING)
@@ -236,4 +248,22 @@ model SystemSetting {
   value       String
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+/// Bitácora de incidencias y antifraude (SRS RF-21)
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  examId    String?
+  exam      Exam?    @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  /// Tipo de evento: "BLUR", "TAB_CHANGED", "FULLSCREEN_EXIT", "COPY_PASTE"
+  action    String
+  
+  /// Detalles adicionales en formato JSON
+  metadata  Json?
+
+  createdAt DateTime @default(now())
 }

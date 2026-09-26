@@ -23,7 +23,7 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     const users = await prisma.user.findMany({
       where: filterRole ? { role: filterRole as any } : undefined,
       include: {
-        profile: { select: { firstName: true, lastName: true, career: true, semester: true } },
+        profile: { select: { firstName: true, lastName: true, career: true, semester: true, controlNumber: true, institution: true, category: true } },
         _count: { select: { examsCreated: true } },
       },
       orderBy: { createdAt: 'asc' },
@@ -37,6 +37,9 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
       lastName: u.profile?.lastName ?? null,
       career: u.profile?.career ?? null,
       semester: u.profile?.semester ?? null,
+      controlNumber: u.profile?.controlNumber ?? null,
+      institution: u.profile?.institution ?? null,
+      category: u.profile?.category ?? null,
       createdAt: u.createdAt,
     })));
   } catch (error) {
@@ -59,7 +62,7 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<v
   }
 
   const userId = req.params['id'] as string;
-  const { email, firstName, lastName, semester, password } = req.body;
+  const { email, firstName, lastName, semester, password, controlNumber, institution, category } = req.body;
 
   try {
     // Verificar que el usuario existe
@@ -89,11 +92,14 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<v
       await prisma.user.update({ where: { id: userId }, data: userUpdate });
     }
 
-    // Actualizar Profile (nombre, apellido, semestre)
+    // Actualizar Profile (nombre, apellido, semestre, y campos institucionales)
     const profileUpdate: any = {};
     if (firstName !== undefined) profileUpdate.firstName = firstName;
     if (lastName !== undefined) profileUpdate.lastName = lastName;
     if (semester !== undefined) profileUpdate.semester = semester ? parseInt(semester, 10) : null;
+    if (controlNumber !== undefined) profileUpdate.controlNumber = controlNumber || null;
+    if (institution !== undefined) profileUpdate.institution = institution || null;
+    if (category !== undefined) profileUpdate.category = category || null;
 
     if (Object.keys(profileUpdate).length > 0) {
       await prisma.profile.updateMany({ where: { userId }, data: profileUpdate });

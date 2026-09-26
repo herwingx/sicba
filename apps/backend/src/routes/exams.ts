@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '@sicba/database';
 import { requireAuth } from '../middlewares/auth.middleware';
+import { getIO } from '../socket';
 
 const router = Router();
 
@@ -547,10 +548,59 @@ router.post('/:id/answer', requireAuth, async (req: Request, res: Response) => {
       create: { participationId: participation.id, questionId, selectedOptionId },
     });
 
+    // ─── Emitir progreso al Live Scoreboard (Socket.io) ─────────────
+    const answeredCount = await prisma.answer.count({
+      where: { participationId: participation.id, selectedOptionId: { not: null } },
+    });
+    
+    getIO().to(`exam_${examId}`).emit('student_progress', {
+      studentId,
+      examId,
+      answeredCount,
+      totalQuestions: exam.questions.length,
+      timestamp: new Date(),
+    });
+
     return res.json({ message: 'Respuesta registrada.', answerId: answer.id });
   } catch (error) {
     console.error('Error al registrar respuesta:', error);
     return res.status(500).json({ error: 'Error interno al guardar la respuesta.' });
+  }
+});
+
+// ─── POST /api/exams/:id/audit — Registro Antifraude ──────────────────────
+router.post('/:id/audit', requireAuth, async (req: Request, res: Response) => {
+  const { id: userId } = (req as any).user;
+  const examId = req.params['id'] as string;
+  const { action, metadata } = req.body;
+
+  if (!action) {
+    return res.status(400).json({ error: 'La acción es requerida.' });
+  }
+
+  try {
+    const exam = await prisma.exam.findUnique({ where: { id: examId } });
+    if (!exam) return res.status(404).json({ error: 'Examen no encontrado.' });
+
+    const auditLog = await prisma.auditLog.create({
+      data: {
+        userId,
+        examId,
+        action,
+        metadata: metadata || {},
+      }
+    });
+    
+    // Emitir el evento de fraude a los administradores
+    getIO().to(`exam_${examId}`).emit('fraud_alert', {
+      ...auditLog,
+      timestamp: auditLog.createdAt
+    });
+
+    return res.json({ message: 'Incidencia registrada.' });
+  } catch (error) {
+    console.error('Error al registrar auditoría:', error);
+    return res.status(500).json({ error: 'Error interno al guardar auditoría.' });
   }
 });
 
@@ -620,9 +670,21 @@ router.post('/:id/submit', requireAuth, async (req: Request, res: Response) => {
     const rawScore = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
     const score = Math.round(rawScore * 100) / 100;
 
-    await prisma.participation.update({
+    const participationUpdated = await prisma.participation.update({
       where: { id: participation.id },
       data: { status: 'SUBMITTED', score, finishedAt: new Date() },
+      include: {
+        user: { select: { profile: true, email: true } }
+      }
+    });
+
+    // ─── Emitir finalización al Live Scoreboard (Socket.io) ─────────
+    getIO().to(`exam_${examId}`).emit('student_submitted', {
+      studentId,
+      examId,
+      score,
+      timeSpent: participationUpdated.finishedAt!.getTime() - participationUpdated.startedAt!.getTime(),
+      user: participationUpdated.user,
     });
 
     const breakdown = buildBreakdown(participation);
@@ -674,6 +736,76 @@ function buildBreakdown(participation: any) {
     };
   });
 }
+
+// ─── GET /api/exams/:id/live-scoreboard — Estado en vivo ─────────────────
+router.get('/:id/live-scoreboard', requireAuth, async (req: Request, res: Response) => {
+  const { role } = (req as any).user;
+  const examId = req.params['id'] as string;
+
+  if (role !== 'ADMIN' && role !== 'MAESTRO') {
+    return res.status(403).json({ error: 'Solo administradores pueden ver el scoreboard en vivo.' });
+  }
+
+  try {
+    const exam = await prisma.exam.findUnique({
+      where: { id: examId },
+      include: {
+        participations: {
+          include: {
+            user: { select: { email: true, profile: true } },
+            _count: { select: { answers: { where: { selectedOptionId: { not: null } } } } }
+          }
+        },
+        _count: { select: { questions: true } }
+      }
+    });
+
+    if (!exam) return res.status(404).json({ error: 'Examen no encontrado.' });
+
+    const scoreboard = exam.participations.map(p => ({
+      id: p.id,
+      studentId: p.studentId,
+      user: p.user,
+      status: p.status,
+      score: p.score,
+      answeredCount: p._count.answers,
+      totalQuestions: exam._count.questions,
+      timeSpent: p.finishedAt && p.startedAt ? p.finishedAt.getTime() - p.startedAt.getTime() : 0,
+      startedAt: p.startedAt
+    }));
+
+    return res.json({
+      examTitle: exam.title,
+      totalQuestions: exam._count.questions,
+      scoreboard
+    });
+  } catch (error) {
+    console.error('Error al cargar scoreboard:', error);
+    return res.status(500).json({ error: 'Error interno al cargar el scoreboard.' });
+  }
+});
+
+// ─── GET /api/exams/:id/audit-logs — Registros antifraude ───────────────────
+router.get('/:id/audit-logs', requireAuth, async (req: Request, res: Response) => {
+  const { role } = (req as any).user;
+  const examId = req.params['id'] as string;
+
+  if (role !== 'ADMIN' && role !== 'MAESTRO') {
+    return res.status(403).json({ error: 'Solo administradores pueden ver los registros antifraude.' });
+  }
+
+  try {
+    const logs = await prisma.auditLog.findMany({
+      where: { examId },
+      include: { user: { select: { email: true, profile: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json(logs);
+  } catch (error) {
+    console.error('Error al cargar logs antifraude:', error);
+    return res.status(500).json({ error: 'Error interno al cargar los registros antifraude.' });
+  }
+});
 
 // ─── DELETE /api/exams/:id — Borrar Examen (Admin/Maestro) ──────────────────
 router.delete('/:id', requireAuth, async (req: Request, res: Response) => {

@@ -122,6 +122,8 @@ interface ExamManagerProps {
   onEnterExam?: (examId: string) => void
   /** Función callback ejecutada para consultar los resultados de un examen */
   onViewResult?: (examId: string) => void
+  /** Función callback para abrir el modo Live Scoreboard */
+  onOpenScoreboard?: (examId: string) => void
 }
 
 const API = 'http://localhost:3000'
@@ -132,7 +134,7 @@ const API = 'http://localhost:3000'
  *
  * @param props Propiedades de navegación para ingresar o ver resultados de un examen.
  */
-export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
+export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: ExamManagerProps) {
   // Se obtiene el token y rol para determinar los permisos en la vista (RBAC básico).
   const token = localStorage.getItem('sicba_token')
   const role = localStorage.getItem('sicba_role')
@@ -637,6 +639,22 @@ export function ExamManager({ onEnterExam, onViewResult }: ExamManagerProps) {
                         {/* Admin: Editar + Publicar + Ver Resultados + Eliminar */}
                         {isAdmin && (
                           <div className="flex justify-end gap-2">
+                            {/* Botón Live Scoreboard (visible si está activo o finalizado) */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onOpenScoreboard?.(exam.id)}
+                              title="Live Scoreboard"
+                            >
+                              <div className="flex items-center gap-1.5 text-blue-500">
+                                <span className="relative flex size-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full size-2 bg-blue-500"></span>
+                                </span>
+                                Live
+                              </div>
+                            </Button>
+                            
                             <Button
                               size="sm"
                               variant="outline"

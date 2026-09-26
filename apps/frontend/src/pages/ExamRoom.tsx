@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   ClockIcon, CheckCircle2Icon, SendIcon, Loader2Icon,
-  ShieldCheckIcon, RotateCcwIcon,
+  ShieldCheckIcon, RotateCcwIcon, FlagIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -88,6 +88,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
   const [submitting, setSubmitting] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resumed, setResumed] = useState(false) // Si el alumno está reanudando
+  const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({})
   const participationIdRef = useRef<string>('')
 
   /**
@@ -101,13 +102,68 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     const handler = (e: BeforeUnloadEvent) => {
       if (questions.length > 0 && !submitting) {
         e.preventDefault()
-        // Mensaje estándar — el navegador lo reemplaza con el suyo propio
         return 'Tienes un examen en curso. ¿Seguro que quieres salir? Tu progreso parcial está guardado.'
       }
     }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [questions.length, submitting])
+
+  // ─── Monitor Antifraude: Tab Switch, Blur, Paste, Copy ────────────────────
+  useEffect(() => {
+    if (loading || alreadySubmitted || submitting || questions.length === 0) return
+
+    const reportIncident = async (action: string, metadata: any = {}) => {
+      try {
+        await fetch(`${API}/api/exams/${examId}/audit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action, metadata })
+        })
+        toast.error(`Incidencia detectada: ${action}`, { id: 'fraud-alert' })
+      } catch (err) {
+        console.error('No se pudo registrar la incidencia de auditoría', err)
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        reportIncident('TAB_SWITCH', { url: window.location.href })
+      }
+    }
+
+    const handleBlur = () => {
+      reportIncident('WINDOW_BLUR', { url: window.location.href })
+    }
+
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault()
+      reportIncident('PASTE_ATTEMPT')
+    }
+
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault()
+      reportIncident('COPY_ATTEMPT')
+    }
+    
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('blur', handleBlur)
+    document.addEventListener('paste', handlePaste)
+    document.addEventListener('copy', handleCopy)
+    document.addEventListener('contextmenu', handleContextMenu)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('blur', handleBlur)
+      document.removeEventListener('paste', handlePaste)
+      document.removeEventListener('copy', handleCopy)
+      document.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [loading, alreadySubmitted, submitting, questions.length, examId, token])
 
   // ─── Iniciar / reanudar examen ────────────────────────────────────────────
   useEffect(() => {
@@ -328,17 +384,18 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
 
   // ─── Sala de examen ───────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6 max-w-3xl mx-auto w-full">
-      {/* Banner de reanudación */}
-      {resumed && (
-        <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-4 py-2.5 text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
-          <RotateCcwIcon className="size-4 shrink-0" />
-          Examen reanudado — tus respuestas anteriores fueron recuperadas.
-        </div>
-      )}
+    <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-6 max-w-6xl mx-auto w-full items-start">
+      <div className="flex-1 w-full min-w-0 flex flex-col gap-4">
+        {/* Banner de reanudación */}
+        {resumed && (
+          <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-4 py-2.5 text-blue-700 dark:text-blue-300 text-sm flex items-center gap-2">
+            <RotateCcwIcon className="size-4 shrink-0" />
+            Examen reanudado — tus respuestas anteriores fueron recuperadas.
+          </div>
+        )}
 
-      {/* Header del examen */}
-      <div className="flex flex-col gap-2">
+        {/* Header del examen */}
+        <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-tight truncate">{examTitle}</h1>
           {/* Temporizador */}
@@ -375,12 +432,25 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
                 required={question.required}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <Badge variant="outline">
-                    Pregunta {index + 1} de {questions.length}
-                  </Badge>
-                  <Badge variant="secondary">
-                    {'⭐'.repeat(question.difficulty)}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      Pregunta {index + 1} de {questions.length}
+                    </Badge>
+                    <Badge variant="secondary">
+                      {'⭐'.repeat(question.difficulty)}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn("h-8 gap-1.5", markedForReview[question.name] ? "text-orange-500 bg-orange-50 dark:bg-orange-950/30" : "text-muted-foreground")}
+                    onClick={() => toggleMarkForReview(question.name)}
+                  >
+                    <FlagIcon className={cn("size-4", markedForReview[question.name] && "fill-orange-500")} />
+                    <span className="hidden sm:inline">
+                      {markedForReview[question.name] ? 'Marcada para revisión' : 'Marcar para revisión'}
+                    </span>
+                  </Button>
                 </div>
                 <QuestionnaireTitle className="text-lg mb-6 leading-relaxed">
                   {question.prompt}
@@ -434,6 +504,64 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
           </Questionnaire>
         </div>
       </div>
+
+      {/* Grid lateral de progreso */}
+      <div className="hidden lg:flex flex-col gap-4 w-72 shrink-0">
+        <div className="sticky top-20 rounded-xl border bg-card text-card-foreground shadow-sm p-4">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <CheckCircle2Icon className="size-4 text-primary" />
+            Estado del Examen
+          </h3>
+          
+          <div className="grid grid-cols-5 gap-2 mb-6">
+            {questions.map((q, idx) => {
+              const qId = q.questionId
+              const isAnswered = !!answers[qId]
+              const isMarked = markedForReview[qId]
+              const isActive = currentIndex === idx
+
+              return (
+                <Button
+                  key={qId}
+                  variant={isActive ? "default" : isAnswered ? "secondary" : "outline"}
+                  className={cn(
+                    "h-10 w-full p-0 font-mono text-sm relative transition-all",
+                    isActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "",
+                    isMarked && !isActive ? "border-orange-400 bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400" : ""
+                  )}
+                  onClick={() => setCurrentIndex(idx)}
+                >
+                  {idx + 1}
+                  {isMarked && (
+                    <FlagIcon className={cn("size-3 absolute -top-1 -right-1", isActive ? "text-primary-foreground fill-primary-foreground" : "text-orange-500 fill-orange-500")} />
+                  )}
+                </Button>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-secondary border" /> Respondida
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-background border" /> Pendiente
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="size-3 rounded-full bg-orange-100 border border-orange-300 dark:bg-orange-900/50" /> Para revisión
+            </div>
+          </div>
+          
+          <Button
+            onClick={() => setConfirmOpen(true)}
+            disabled={submitting}
+            className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white dark:bg-green-700 dark:hover:bg-green-800"
+          >
+            <SendIcon className="mr-2 size-4" /> Terminar Examen
+          </Button>
+        </div>
+      </div>
+    </div>
 
       {/* Confirmación de entrega */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

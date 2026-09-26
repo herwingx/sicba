@@ -23,11 +23,12 @@ import { ExamManager } from '@/pages/ExamManager'
 import { ExamRoom } from '@/pages/ExamRoom'
 import { ExamResult } from '@/pages/ExamResult'
 import { UsersAdmin } from '@/pages/UsersAdmin'
+import { LiveScoreboard } from '@/pages/LiveScoreboard'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { StudentHistory } from '@/pages/StudentHistory'
 
-type Page = 'dashboard' | 'questions' | 'exams' | 'exam-room' | 'exam-result' | 'users' | 'reports' | 'settings' | 'history'
+type Page = 'dashboard' | 'questions' | 'exams' | 'exam-room' | 'exam-result' | 'users' | 'reports' | 'settings' | 'history' | 'live-scoreboard'
 
 const PAGE_LABELS: Record<Page, string> = {
   dashboard: 'Panel Principal',
@@ -39,6 +40,7 @@ const PAGE_LABELS: Record<Page, string> = {
   reports: 'Reportes',
   settings: 'Configuración',
   history: 'Historial',
+  'live-scoreboard': 'Live Scoreboard',
 }
 
 interface ExamResultData {
@@ -231,6 +233,12 @@ export default function App() {
     navigateTo('exams')
   }
 
+  const handleOpenScoreboard = (examId: string) => {
+    setActiveExamId(examId)
+    setCurrentPage('live-scoreboard')
+    window.location.hash = 'live-scoreboard'
+  }
+
   /**
    * Flujo de protección: Si no hay token, el usuario es forzado a la pantalla de Login.
    * ThemeProvider inyecta clases para el modo claro/oscuro en toda la app.
@@ -321,12 +329,24 @@ export default function App() {
     )
   }
 
+  // ─── LIVE SCOREBOARD (pantalla completa) ──────────────────────────────
+  if (currentPage === 'live-scoreboard' && activeExamId) {
+    return (
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <LiveScoreboard examId={activeExamId} onBack={() => handleReturnFromResult()} />
+          <Toaster position="bottom-right" richColors />
+        </TooltipProvider>
+      </ThemeProvider>
+    )
+  }
+
   // ─── DASHBOARD PRINCIPAL ──────────────────────────────────────────────
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard': return <DashboardHome />
       case 'questions': return <QuestionsAdmin />
-      case 'exams': return <ExamManager onEnterExam={handleEnterExam} onViewResult={handleViewResult} />
+      case 'exams': return <ExamManager onEnterExam={handleEnterExam} onViewResult={handleViewResult} onOpenScoreboard={handleOpenScoreboard} />
       case 'users': return <UsersAdmin />
       case 'settings': return <SettingsPage />
       case 'reports': return <ReportsPage />
