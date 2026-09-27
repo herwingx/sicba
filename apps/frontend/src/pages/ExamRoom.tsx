@@ -121,7 +121,11 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     if (loading || alreadySubmitted || submitting || questions.length === 0) return
 
     let isUnloading = false
-    const handleBeforeUnloadUnloadFlag = () => { isUnloading = true }
+    const handleBeforeUnloadUnloadFlag = () => { 
+      isUnloading = true 
+      // Si el usuario cancela el diálogo de recarga, la página sigue viva
+      setTimeout(() => { isUnloading = false }, 1000)
+    }
     window.addEventListener('beforeunload', handleBeforeUnloadUnloadFlag)
 
     const reportIncident = async (action: string, metadata: any = {}) => {
@@ -151,10 +155,18 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
       }
     }
 
+    let blurTimeout: any
     const handleBlur = () => {
-      if (!isUnloading) {
-        reportIncident('WINDOW_BLUR', { url: window.location.href })
-      }
+      // Dar un pequeño tiempo de gracia por si la pérdida de foco fue por hacer click en "Recargar" o cerrar ventana
+      blurTimeout = setTimeout(() => {
+        if (!isUnloading) {
+          reportIncident('WINDOW_BLUR', { url: window.location.href })
+        }
+      }, 1000)
+    }
+
+    const handleFocus = () => {
+      clearTimeout(blurTimeout)
     }
 
     const handlePaste = (e: ClipboardEvent) => {
@@ -173,6 +185,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('blur', handleBlur)
+    window.addEventListener('focus', handleFocus)
     document.addEventListener('paste', handlePaste)
     document.addEventListener('copy', handleCopy)
     document.addEventListener('contextmenu', handleContextMenu)
@@ -181,6 +194,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
       window.removeEventListener('beforeunload', handleBeforeUnloadUnloadFlag)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('blur', handleBlur)
+      window.removeEventListener('focus', handleFocus)
       document.removeEventListener('paste', handlePaste)
       document.removeEventListener('copy', handleCopy)
       document.removeEventListener('contextmenu', handleContextMenu)
