@@ -13,6 +13,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from '@/components/ui/input-otp'
+import { REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -749,6 +750,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
             <div className="flex flex-col items-center gap-4 py-4">
               <InputOTP 
                 maxLength={6} 
+                pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
                 value={enrollCode} 
                 onChange={(v) => setEnrollCode(v.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && enrollCode.length === 6 && handleEnroll()}
