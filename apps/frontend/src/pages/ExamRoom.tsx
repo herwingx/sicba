@@ -159,7 +159,8 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     const handleBlur = () => {
       // Dar un pequeño tiempo de gracia por si la pérdida de foco fue por hacer click en "Recargar" o cerrar ventana
       blurTimeout = setTimeout(() => {
-        if (!isUnloading) {
+        // Si document.visibilityState es 'hidden', se reporta como TAB_SWITCH, evitamos duplicar con WINDOW_BLUR
+        if (!isUnloading && document.visibilityState !== 'hidden') {
           reportIncident('WINDOW_BLUR', { url: window.location.href })
         }
       }, 1000)
