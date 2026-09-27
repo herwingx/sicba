@@ -92,11 +92,13 @@ export default function App() {
     if (window.location.hash.includes('live-scoreboard?id=')) {
       return new URLSearchParams(window.location.hash.split('?')[1]).get('id')
     }
-    return null
+    return sessionStorage.getItem('sicba_active_exam')
   })
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
   // Bloqueo de navegación cuando el alumno está dentro del examen
-  const [examInProgress, setExamInProgress] = useState(false)
+  const [examInProgress, setExamInProgress] = useState(() => {
+    return window.location.hash.replace(/^#\/?/, '') === 'exam-room'
+  })
   const examInProgressRef = useRef(examInProgress)
   
   // Sincronizar el ref con el estado para que el listener siempre tenga el valor actual
@@ -132,6 +134,7 @@ export default function App() {
   }, [examInProgress])
 
   const confirmLeaveExam = () => {
+    sessionStorage.removeItem('sicba_active_exam')
     setLeaveAlertOpen(false)
     setExamInProgress(false)
     if (pendingHash) {
@@ -193,6 +196,7 @@ export default function App() {
   }
 
   const handleEnterExam = (examId: string) => {
+    sessionStorage.setItem('sicba_active_exam', examId)
     setActiveExamId(examId)
     setExamInProgress(true)   // Bloquear navegación hacia atrás mientras está en el examen
     navigateTo('exam-room')
@@ -236,6 +240,7 @@ export default function App() {
   }
 
   const handleReturnFromResult = () => {
+    sessionStorage.removeItem('sicba_active_exam')
     setExamResult(null)
     setActiveExamId(null)
     setExamInProgress(false)

@@ -120,7 +120,12 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
   useEffect(() => {
     if (loading || alreadySubmitted || submitting || questions.length === 0) return
 
+    let isUnloading = false
+    const handleBeforeUnloadUnloadFlag = () => { isUnloading = true }
+    window.addEventListener('beforeunload', handleBeforeUnloadUnloadFlag)
+
     const reportIncident = async (action: string, metadata: any = {}) => {
+      if (isUnloading) return
       try {
         await fetch(`${API}/api/exams/${examId}/audit`, {
           method: 'POST',
@@ -141,13 +146,15 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === 'hidden' && !isUnloading) {
         reportIncident('TAB_SWITCH', { url: window.location.href })
       }
     }
 
     const handleBlur = () => {
-      reportIncident('WINDOW_BLUR', { url: window.location.href })
+      if (!isUnloading) {
+        reportIncident('WINDOW_BLUR', { url: window.location.href })
+      }
     }
 
     const handlePaste = (e: ClipboardEvent) => {
@@ -171,6 +178,7 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
     document.addEventListener('contextmenu', handleContextMenu)
 
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnloadUnloadFlag)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('blur', handleBlur)
       document.removeEventListener('paste', handlePaste)
