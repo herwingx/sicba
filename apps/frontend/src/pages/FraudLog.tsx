@@ -12,6 +12,7 @@ interface FraudEvent {
   action: string;
   metadata: any;
   timestamp: string;
+  createdAt?: string;
   user: { email: string, profile: { firstName: string, lastName: string } | null } | null;
 }
 
@@ -110,7 +111,7 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack?: () => vo
             logs.map((log, index) => {
               const actionDef = ACTION_LABELS[log.action] || { label: log.action, icon: <AlertTriangleIcon className="size-4" />, color: 'text-slate-400 bg-slate-800 border-slate-700' };
               const name = log.user?.profile ? `${log.user.profile.firstName} ${log.user.profile.lastName}` : (log.user?.email || 'Alumno Desconocido');
-              const time = new Date(log.timestamp).toLocaleTimeString();
+              const time = new Date(log.timestamp || log.createdAt || Date.now()).toLocaleTimeString();
               const isNew = index === 0;
 
               return (

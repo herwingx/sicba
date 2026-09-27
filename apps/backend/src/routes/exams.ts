@@ -397,12 +397,27 @@ router.post('/enroll', requireAuth, async (req: Request, res: Response) => {
     }
 
     // Inscribir (crear participación PENDING)
-    await prisma.participation.create({
+    const participation = await prisma.participation.create({
       data: {
         examId: exam.id,
         studentId: userId as string,
         status: 'PENDING'
+      },
+      include: {
+        user: { select: { email: true, profile: true } }
       }
+    });
+
+    // Emitir evento al Live Scoreboard
+    getIO().to(`exam_${exam.id}`).emit('student_joined', {
+      studentId: userId as string,
+      user: participation.user,
+      status: 'PENDING',
+      score: null,
+      answeredCount: 0,
+      totalQuestions: 0, // El frontend usará su propio state
+      timeSpent: 0,
+      startedAt: null
     });
 
     return res.status(200).json({ message: 'Te has unido al concurso con éxito.', examId: exam.id });
@@ -475,6 +490,12 @@ router.post('/:id/start', requireAuth, async (req: Request, res: Response) => {
         score: participation!.score,
       });
     }
+
+    // Emitir evento al Live Scoreboard de que empezó a correr su tiempo
+    getIO().to(`exam_${examId}`).emit('student_started', {
+      studentId,
+      startedAt: participation!.startedAt
+    });
 
     const shuffledQuestions = shuffleArray(exam.questions).map((eq) => ({
       questionId: eq.question.id,

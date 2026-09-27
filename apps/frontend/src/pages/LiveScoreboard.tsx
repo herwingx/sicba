@@ -30,9 +30,17 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
   const token = localStorage.getItem('sicba_token');
   
   const [examTitle, setExamTitle] = useState('Cargando examen...');
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const [students, setStudents] = useState<Record<string, StudentState>>({});
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  // Cronómetro en vivo para participantes en progreso
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Fetch inicial
   useEffect(() => {
@@ -45,6 +53,7 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
         const data = await res.json();
         
         setExamTitle(data.examTitle);
+        setTotalQuestions(data.totalQuestions || 0);
         
         const initialMap: Record<string, StudentState> = {};
         data.scoreboard.forEach((p: any) => {
@@ -79,6 +88,31 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
     newSocket.on('connect', () => {
       console.log('Conectado a Socket.io, uniendo a sala del examen...');
       newSocket.emit('join_exam_room', examId);
+    });
+
+    newSocket.on('student_joined', (data: any) => {
+      setStudents(prev => ({
+        ...prev,
+        [data.studentId]: {
+          ...data,
+          totalQuestions: prev[data.studentId]?.totalQuestions || totalQuestions
+        }
+      }));
+    });
+
+    newSocket.on('student_started', (data: any) => {
+      setStudents(prev => {
+        const student = prev[data.studentId];
+        if (!student) return prev;
+        return {
+          ...prev,
+          [data.studentId]: {
+            ...student,
+            status: 'IN_PROGRESS',
+            startedAt: data.startedAt
+          }
+        };
+      });
     });
 
     newSocket.on('student_progress', (data: any) => {
@@ -305,7 +339,12 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
                     {/* Time */}
                     <div className="col-span-1 flex justify-center items-center font-mono text-muted-foreground text-sm">
                       <ClockIcon className="size-4 mr-1.5 opacity-50" />
-                      {student.timeSpent ? formatTime(student.timeSpent) : '--:--'}
+                      {isSubmitted 
+                        ? formatTime(student.timeSpent) 
+                        : student.startedAt 
+                          ? formatTime(Math.max(0, now - new Date(student.startedAt).getTime())) 
+                          : '--:--'
+                      }
                     </div>
 
                     {/* Score */}
