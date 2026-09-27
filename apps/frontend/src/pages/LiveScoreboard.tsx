@@ -223,14 +223,14 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
             </Button>
           )}
           <div>
-            <div className="flex items-center gap-2 text-blue-400 font-semibold uppercase tracking-widest text-xs mb-1">
+            <div className="flex items-center gap-2 text-blue-400 font-bold uppercase tracking-widest text-[11px] mb-1">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
               En Vivo
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-foreground">{examTitle}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{examTitle}</h1>
           </div>
         </div>
 
@@ -258,7 +258,7 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
 
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-3 text-xs font-semibold uppercase tracking-widest text-foreground0">
+          <div className="grid grid-cols-12 gap-4 px-6 py-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/70">
             <div className="col-span-1 text-center">Rango</div>
             <div className="col-span-5">Participante</div>
             <div className="col-span-3 text-center">Avance</div>
@@ -310,21 +310,21 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
                           <TrophyIcon className="size-5" />
                         </div>
                       ) : (
-                        <div className="text-2xl font-black text-muted-foreground font-mono">{index + 1}</div>
+                        <div className="text-2xl font-bold text-muted-foreground tabular-nums tracking-tighter">{index + 1}</div>
                       )}
                     </div>
 
                     {/* Info */}
                     <div className="col-span-5 flex flex-col">
-                      <span className={`text-lg font-bold truncate ${isTop3 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      <span className={`text-lg font-semibold tracking-tight truncate ${isTop3 ? 'text-foreground' : 'text-muted-foreground'}`}>
                         {name}
                       </span>
-                      <span className="text-sm text-foreground0 truncate">{institution}</span>
+                      <span className="text-[13px] text-muted-foreground/70 truncate">{institution}</span>
                     </div>
 
                     {/* Progress Bar */}
                     <div className="col-span-3 flex flex-col justify-center px-4">
-                      <div className="flex justify-between text-xs font-mono mb-1.5 text-muted-foreground">
+                      <div className="flex justify-between text-[11px] font-semibold tabular-nums text-muted-foreground/80 mb-1.5">
                         <span>{student.answeredCount} / {student.totalQuestions}</span>
                         <span>{Math.round(progressPercentage)}%</span>
                       </div>
@@ -337,7 +337,7 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
                     </div>
 
                     {/* Time */}
-                    <div className="col-span-1 flex justify-center items-center font-mono text-muted-foreground text-sm">
+                    <div className="col-span-1 flex justify-center items-center text-muted-foreground/80 text-sm font-medium tabular-nums tracking-tight">
                       <ClockIcon className="size-4 mr-1.5 opacity-50" />
                       {isSubmitted 
                         ? formatTime(student.timeSpent) 
@@ -350,11 +350,11 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
                     {/* Score */}
                     <div className="col-span-2 text-right">
                       {isSubmitted ? (
-                        <span className={`text-3xl font-black font-mono tracking-tighter ${index === 0 ? 'text-yellow-400' : 'text-foreground'}`}>
+                        <span className={`text-4xl font-bold tracking-tighter tabular-nums ${index === 0 ? 'text-yellow-400' : 'text-foreground'}`}>
                           {student.score?.toFixed(1)}
                         </span>
                       ) : (
-                        <span className="text-xl font-medium text-muted-foreground font-mono uppercase text-sm tracking-widest">
+                        <span className="text-xl font-medium text-muted-foreground/50 uppercase text-sm tracking-[0.2em]">
                           Evaluando
                         </span>
                       )}

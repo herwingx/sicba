@@ -91,8 +91,8 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack?: () => vo
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive"></span>
         </div>
-        <h2 className="font-semibold text-lg tracking-tight">Registro Antifraude</h2>
-        <Badge variant="destructive" className="ml-auto rounded-md px-2 font-mono">
+        <h2 className="font-semibold text-base tracking-tight text-foreground/90">Registro Antifraude</h2>
+        <Badge variant="destructive" className="ml-auto rounded-md px-2 text-[10px] tabular-nums tracking-tighter">
           {logs.length}
         </Badge>
       </div>
@@ -127,10 +127,10 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack?: () => vo
                     <div className="flex flex-col gap-2 pl-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm text-foreground truncate pr-2">{name}</span>
-                        <span className="text-xs font-mono text-muted-foreground">{time}</span>
+                        <span className="text-[10px] font-medium tabular-nums tracking-tighter text-muted-foreground/60">{time}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <Badge variant="outline" className={`font-mono border ${actionDef.color} gap-1 px-1.5 py-0.5 text-xs uppercase tracking-wider`}>
+                        <Badge variant="outline" className={`border ${actionDef.color} gap-1 px-1.5 py-0 text-[9px] font-bold uppercase tracking-widest`}>
                           {actionDef.icon}
                           {actionDef.label}
                         </Badge>
