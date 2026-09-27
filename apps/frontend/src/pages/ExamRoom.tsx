@@ -128,7 +128,13 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
           body: JSON.stringify({ action, metadata }),
           keepalive: true
         })
-        toast.error(`Incidencia detectada: ${action}`, { id: 'fraud-alert' })
+        const actionLabels: Record<string, string> = {
+          'TAB_SWITCH': 'Cambio de pestaña',
+          'WINDOW_BLUR': 'Pérdida de foco de la ventana',
+          'PASTE_ATTEMPT': 'Intento de pegar contenido',
+          'COPY_ATTEMPT': 'Intento de copiar contenido'
+        }
+        toast.error(`Incidencia detectada: ${actionLabels[action] || action}`, { id: 'fraud-alert' })
       } catch (err) {
         console.error('No se pudo registrar la incidencia de auditoría', err)
       }

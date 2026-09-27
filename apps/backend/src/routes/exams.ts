@@ -588,6 +588,9 @@ router.post('/:id/audit', requireAuth, async (req: Request, res: Response) => {
         examId,
         action,
         metadata: metadata || {},
+      },
+      include: {
+        user: { select: { email: true, profile: true } }
       }
     });
     
