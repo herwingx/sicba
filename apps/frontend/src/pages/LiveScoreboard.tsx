@@ -30,7 +30,6 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
   const token = localStorage.getItem('sicba_token');
   
   const [examTitle, setExamTitle] = useState('Cargando examen...');
-  const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const [students, setStudents] = useState<Record<string, StudentState>>({});
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -53,7 +52,6 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
         const data = await res.json();
         
         setExamTitle(data.examTitle);
-        setTotalQuestions(data.totalQuestions || 0);
         
         const initialMap: Record<string, StudentState> = {};
         data.scoreboard.forEach((p: any) => {
@@ -95,7 +93,7 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
         ...prev,
         [data.studentId]: {
           ...data,
-          totalQuestions: prev[data.studentId]?.totalQuestions || totalQuestions
+          totalQuestions: data.totalQuestions || prev[data.studentId]?.totalQuestions || 0
         }
       }));
     });

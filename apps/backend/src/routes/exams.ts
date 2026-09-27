@@ -380,7 +380,12 @@ router.post('/enroll', requireAuth, async (req: Request, res: Response) => {
 
   try {
     const exam = await prisma.exam.findUnique({
-      where: { accessCode }
+      where: { accessCode },
+      include: {
+        _count: {
+          select: { questions: true }
+        }
+      }
     });
 
     if (!exam || !exam.isActive) {
@@ -415,7 +420,7 @@ router.post('/enroll', requireAuth, async (req: Request, res: Response) => {
       status: 'PENDING',
       score: null,
       answeredCount: 0,
-      totalQuestions: 0, // El frontend usará su propio state
+      totalQuestions: exam._count.questions, // Ahora se envía correctamente
       timeSpent: 0,
       startedAt: null
     });
