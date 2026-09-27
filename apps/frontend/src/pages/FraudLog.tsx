@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { Loader2Icon, ShieldAlertIcon, ArrowLeftIcon, AlertTriangleIcon, CopyIcon, ClipboardPasteIcon, EyeOffIcon, MousePointerClickIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,9 +21,8 @@ const ACTION_LABELS: Record<string, { label: string, icon: React.ReactNode, colo
   'COPY_ATTEMPT': { label: 'Intento de Copiado', icon: <CopyIcon className="size-4" />, color: 'text-orange-500 bg-orange-500/10 border-orange-500/20' },
 }
 
-export function FraudLog({ examId, onBack }: { examId: string, onBack: () => void }) {
+export function FraudLog({ examId, onBack }: { examId: string, onBack?: () => void }) {
   const token = localStorage.getItem('sicba_token');
-  const [socket, setSocket] = useState<Socket | null>(null);
   
   const [logs, setLogs] = useState<FraudEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +51,6 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
   useEffect(() => {
     if (!token) return;
     const newSocket = io('http://localhost:3001');
-    setSocket(newSocket);
 
     newSocket.on('connect', () => {
       newSocket.emit('join_exam_room', examId);
@@ -80,6 +77,11 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack: () => voi
   return (
     <div className="flex flex-col h-full bg-card text-card-foreground font-sans border-l border-border rounded-r-xl">
       <div className="p-4 border-b border-border bg-muted/50 flex items-center gap-2">
+        {onBack && (
+          <Button variant="ghost" size="icon" className="h-8 w-8 mr-1" onClick={onBack}>
+            <ArrowLeftIcon className="size-4" />
+          </Button>
+        )}
         <ShieldAlertIcon className="size-5 text-destructive" />
         <h2 className="font-semibold text-lg">Registro Antifraude</h2>
         <Badge variant="destructive" className="ml-auto rounded-full px-2">

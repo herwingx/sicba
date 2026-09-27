@@ -91,6 +91,13 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({})
   const participationIdRef = useRef<string>('')
 
+  const toggleMarkForReview = (questionName: string) => {
+    setMarkedForReview((prev) => ({
+      ...prev,
+      [questionName]: !prev[questionName],
+    }))
+  }
+
   /**
    * EXTREMADAMENTE IMPORTANTE:
    * Evento `beforeunload` para evitar que el usuario cierre accidentalmente la ventana

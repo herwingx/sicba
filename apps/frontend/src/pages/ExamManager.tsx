@@ -597,7 +597,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                       <TableCell className="text-sm">{exam.timeLimit} min</TableCell>
                       <TableCell>
                         {!isAdmin && myPart?.status === 'SUBMITTED' ? (
-                          <Badge variant="outline" variant="secondary" className="text-secondary-foreground">Terminado</Badge>
+                          <Badge variant="secondary" className="text-secondary-foreground">Terminado</Badge>
                         ) : (
                           <>
                             {isLive && <Badge variant="default" className="bg-primary text-primary-foreground">En vivo</Badge>}
@@ -610,7 +610,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                       {!isAdmin && (
                         <TableCell className="text-center">
                           {myPart?.status === 'SUBMITTED' && myPart.score !== null ? (
-                            <Badge variant="secondary" variant="secondary" className="font-bold text-secondary-foreground">
+                            <Badge variant="secondary" className="font-bold text-secondary-foreground">
                               {myPart.score}%
                             </Badge>
                           ) : (
@@ -1097,11 +1097,11 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
                         </TableCell>
                         <TableCell className="text-center">
                           {res.status === 'SUBMITTED' ? (
-                            <Badge variant="outline" className="text-xs" variant="secondary">
+                            <Badge variant="secondary" className="text-xs">
                               ✓ Entregado
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-xs text-muted-foreground" variant="outline">
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
                               ⏳ En curso
                             </Badge>
                           )}

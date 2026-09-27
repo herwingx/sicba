@@ -330,7 +330,7 @@ export function UsersAdmin() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="editSemester">Semestre</Label>
-                    <Select value={editSemester} onValueChange={setEditSemester}>
+                    <Select value={editSemester} onValueChange={(val) => setEditSemester(val || '')}>
                       <SelectTrigger id="editSemester">
                         <SelectValue placeholder="Seleccionar semestre" />
                       </SelectTrigger>

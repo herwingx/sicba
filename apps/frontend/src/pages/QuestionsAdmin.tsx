@@ -533,7 +533,7 @@ export function QuestionsAdmin() {
             <Select 
               value={subjectFilter} 
               onValueChange={(v) => {
-                setSubjectFilter(v);
+                setSubjectFilter(v ?? 'ALL');
                 setCurrentPage(1);
               }}
             >

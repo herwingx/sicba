@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { Loader2Icon, TrophyIcon, UsersIcon, ClockIcon, ArrowLeftIcon, ExpandIcon, MinimizeIcon, ShieldAlertIcon } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { io } from 'socket.io-client';
+import { Loader2Icon, TrophyIcon, UsersIcon, ClockIcon, ArrowLeftIcon, ExpandIcon, MinimizeIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -28,7 +28,6 @@ interface StudentState {
 
 export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () => void }) {
   const token = localStorage.getItem('sicba_token');
-  const [socket, setSocket] = useState<Socket | null>(null);
   
   const [examTitle, setExamTitle] = useState('Cargando examen...');
   const [students, setStudents] = useState<Record<string, StudentState>>({});
@@ -76,7 +75,6 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
     
     // Conectar al backend WebSocket
     const newSocket = io('http://localhost:3001');
-    setSocket(newSocket);
 
     newSocket.on('connect', () => {
       console.log('Conectado a Socket.io, uniendo a sala del examen...');
