@@ -751,6 +751,7 @@ export function ExamManager({ onEnterExam, onViewResult, onOpenScoreboard }: Exa
               <InputOTP 
                 maxLength={6} 
                 pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+                inputMode="text"
                 value={enrollCode} 
                 onChange={(v) => setEnrollCode(v.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && enrollCode.length === 6 && handleEnroll()}
