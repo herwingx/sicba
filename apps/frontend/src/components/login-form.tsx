@@ -65,7 +65,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
 
   useEffect(() => {
     // Check if registration is open
-    fetch("http://localhost:3000/api/settings/registration")
+    fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/settings/registration`)
       .then(res => res.json())
       .then(data => {
         setRegistrationOpen(data.isOpen)
@@ -79,7 +79,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
     setError("")
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/login", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -110,7 +110,7 @@ export function LoginForm({ className, onLoginSuccess, ...props }: LoginFormProp
     setRegError("")
 
     try {
-      const res = await fetch("http://localhost:3000/api/auth/register", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

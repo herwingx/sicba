@@ -140,7 +140,7 @@ export default function App() {
   const refreshExamBadge = useCallback(async () => {
     if (!isStudent) return
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/exams`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}`}/api/exams`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) return
@@ -191,7 +191,7 @@ export default function App() {
 
   // Ver resultados de un examen ya entregado directamente (sin pasar por ExamRoom)
   const handleViewResult = async (examId: string) => {
-    const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+    const API = import.meta.env.VITE_API_URL ?? `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}`
     try {
       const res = await fetch(`${API}/api/exams/${examId}/my-result`, {
         headers: { Authorization: `Bearer ${token}` },

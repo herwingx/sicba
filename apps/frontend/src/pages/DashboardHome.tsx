@@ -52,7 +52,7 @@ export function DashboardHome() {
     const fetchStats = async () => {
       try {
         const token = localStorage.getItem('sicba_token');
-        const res = await fetch('http://localhost:3000/api/stats', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         

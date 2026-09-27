@@ -126,7 +126,7 @@ interface ExamManagerProps {
   onOpenScoreboard?: (examId: string) => void
 }
 
-const API = 'http://localhost:3000'
+const API = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}`
 
 /**
  * Componente principal para la gestión, administración y resolución de exámenes.

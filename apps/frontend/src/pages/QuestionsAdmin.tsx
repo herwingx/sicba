@@ -190,8 +190,8 @@ export function QuestionsAdmin() {
     setLoading(true);
     try {
       const [resQ, resS] = await Promise.all([
-        fetch('http://localhost:3000/api/questions', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('http://localhost:3000/api/subjects', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/subjects`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       const dataQ = await resQ.json();
       const dataS = await resS.json();
@@ -229,7 +229,7 @@ export function QuestionsAdmin() {
     formData.append('file', selectedFile);
 
     try {
-      const res = await fetch('http://localhost:3000/api/questions/bulk', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions/bulk`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -254,7 +254,7 @@ export function QuestionsAdmin() {
    */
   const downloadTemplate = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/questions/template', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions/template`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error();
@@ -277,7 +277,7 @@ export function QuestionsAdmin() {
    */
   const downloadExport = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/questions/export', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions/export`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error();
@@ -341,7 +341,7 @@ export function QuestionsAdmin() {
     // Clear state immediately to prevent double-clicks from firing again
     setQuestionToDelete(null);
     try {
-      const res = await fetch(`http://localhost:3000/api/questions/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -370,8 +370,8 @@ export function QuestionsAdmin() {
     setSaving(true);
     try {
       const url = editingQuestion 
-        ? `http://localhost:3000/api/questions/${editingQuestion.id}`
-        : 'http://localhost:3000/api/questions';
+        ? `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions/${editingQuestion.id}`
+        : `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/questions`;
       
       const res = await fetch(url, {
         method: editingQuestion ? 'PATCH' : 'POST',

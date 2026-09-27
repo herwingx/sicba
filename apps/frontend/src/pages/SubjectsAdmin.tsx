@@ -97,7 +97,7 @@ export function SubjectsAdmin() {
   const fetchSubjects = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/subjects', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/subjects`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -136,7 +136,7 @@ export function SubjectsAdmin() {
   const handleDelete = async () => {
     if (!subjectToDelete) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/subjects/${subjectToDelete}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/subjects/${subjectToDelete}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -165,8 +165,8 @@ export function SubjectsAdmin() {
     setSaving(true);
     try {
       const url = editingSubject 
-        ? `http://localhost:3000/api/subjects/${editingSubject.id}`
-        : 'http://localhost:3000/api/subjects';
+        ? `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/subjects/${editingSubject.id}`
+        : `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/subjects`;
       
       const res = await fetch(url, {
         method: editingSubject ? 'PATCH' : 'POST',

@@ -26,7 +26,7 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack?: () => vo
   
   const [logs, setLogs] = useState<FraudEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+  const API = import.meta.env.VITE_API_URL ?? `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}`;
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -50,7 +50,7 @@ export function FraudLog({ examId, onBack }: { examId: string, onBack?: () => vo
   // Conexión Socket.io
   useEffect(() => {
     if (!token) return;
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io(`${import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:3001'}`);
 
     newSocket.on('connect', () => {
       newSocket.emit('join_exam_room', examId);

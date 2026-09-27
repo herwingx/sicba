@@ -91,8 +91,8 @@ export function UsersAdmin() {
     setLoading(true);
     try {
       const url = role === 'ALL' 
-        ? 'http://localhost:3000/api/users' 
-        : `http://localhost:3000/api/users?role=${role}`;
+        ? `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/users` 
+        : `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/users?role=${role}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -138,7 +138,7 @@ export function UsersAdmin() {
     if (!editUser) return;
     setEditSaving(true);
     try {
-      const res = await fetch(`http://localhost:3000/api/users/${editUser.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/users/${editUser.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ export function UsersAdmin() {
     if (!deleteUser) return;
     setDeleting(true);
     try {
-      const res = await fetch(`http://localhost:3000/api/users/${deleteUser.id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/users/${deleteUser.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

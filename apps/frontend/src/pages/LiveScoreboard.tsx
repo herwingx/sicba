@@ -38,7 +38,7 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/exams/${examId}/live-scoreboard`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/exams/${examId}/live-scoreboard`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Error al cargar datos iniciales');
@@ -74,7 +74,7 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
     if (!token) return;
     
     // Conectar al backend WebSocket
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io(`${import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:3001'}`);
 
     newSocket.on('connect', () => {
       console.log('Conectado a Socket.io, uniendo a sala del examen...');

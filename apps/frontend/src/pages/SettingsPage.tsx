@@ -56,7 +56,7 @@ export function SettingsPage() {
    */
   const fetchSettings = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/settings/registration');
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/settings/registration`);
       const data = await res.json();
       setIsOpen(data.isOpen);
     } catch {
@@ -66,7 +66,7 @@ export function SettingsPage() {
     }
 
     try {
-      const resDom = await fetch('http://localhost:3000/api/settings/domains');
+      const resDom = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/settings/domains`);
       const dataDom = await resDom.json();
       if (dataDom.domains) {
         setDomains(dataDom.domains.join(', '));
@@ -87,7 +87,7 @@ export function SettingsPage() {
   const handleToggleRegistration = async (checked: boolean) => {
     setIsOpen(checked); // Optimistic UI
     try {
-      const res = await fetch('http://localhost:3000/api/settings/registration', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/settings/registration`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ export function SettingsPage() {
         toast.error('Debes tener al menos un dominio permitido');
         return;
       }
-      const res = await fetch('http://localhost:3000/api/settings/domains', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/settings/domains`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export function SettingsPage() {
     setPurging(true);
     setPurgeAlertOpen(false);
     try {
-      const res = await fetch('http://localhost:3000/api/users/purge', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/users/purge`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
