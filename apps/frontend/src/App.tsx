@@ -72,7 +72,7 @@ export default function App() {
   
   // Estado de navegación (sincronizado con el hash de la URL para persistir al recargar).
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    let hash = window.location.hash.replace('#', '')
+    let hash = window.location.hash.replace(/^#\/?/, '')
     if (!hash) hash = 'dashboard'
     if (hash.startsWith('live-scoreboard')) hash = 'live-scoreboard'
     
@@ -110,7 +110,7 @@ export default function App() {
   // Escuchar cambios de hash (botones back/forward del navegador/mouse)
   useEffect(() => {
     const handleHashChange = (e: HashChangeEvent) => {
-      let hashStr = new URL(e.newURL).hash.replace('#', '')
+      let hashStr = new URL(e.newURL).hash.replace(/^#\/?/, '')
       if (hashStr.startsWith('live-scoreboard')) hashStr = 'live-scoreboard'
       const newHash = hashStr as Page
 
