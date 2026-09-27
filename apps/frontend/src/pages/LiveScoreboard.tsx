@@ -179,8 +179,8 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-500 font-sans">
       {/* Header Premium */}
-      <header className="relative overflow-hidden border-b border-border bg-card/50 backdrop-blur-xl px-8 py-6 flex items-center justify-between z-10 shadow-lg">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-transparent pointer-events-none" />
+      <header className="relative overflow-hidden border-b border-border/40 bg-card/30 backdrop-blur-2xl px-8 py-6 flex items-center justify-between z-20 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-transparent pointer-events-none" />
         
         <div className="flex items-center gap-4 relative z-10">
           {!isFullscreen && (
@@ -247,20 +247,19 @@ export function LiveScoreboard({ examId, onBack }: { examId: string, onBack: () 
                   <motion.div
                     key={student.studentId}
                     layout
-                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                    animate={{ opacity: 1, scale: isTop3 ? 1.02 : 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                    initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                    animate={{ opacity: 1, scale: isTop3 ? 1.01 : 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -30 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30, mass: 0.8 }}
                     style={{ zIndex: sortedStudents.length - index }}
                   >
                     <Card 
                       className={`
-                        border-none overflow-hidden transition-all duration-300
-                        ${isTop3 ? 'bg-card/80 shadow-[0_8px_30px_rgb(0,0,0,0.4)]' : 'bg-card/40 opacity-90'}
-                        ${index === 0 ? 'ring-1 ring-yellow-500/50 shadow-yellow-500/10' : ''}
-                        ${index === 1 ? 'ring-1 ring-slate-400/50 shadow-slate-400/10' : ''}
-                        ${index === 2 ? 'ring-1 ring-amber-700/50 shadow-amber-700/10' : ''}
-                        backdrop-blur-md
+                        border border-border/30 overflow-hidden transition-all duration-500
+                        ${isTop3 ? 'bg-card/60 shadow-[0_8px_30px_rgb(0,0,0,0.4)] backdrop-blur-xl' : 'bg-card/20 opacity-90 backdrop-blur-md hover:bg-card/40'}
+                        ${index === 0 ? 'ring-1 ring-yellow-400/50 shadow-yellow-500/20' : ''}
+                        ${index === 1 ? 'ring-1 ring-slate-300/50 shadow-slate-400/20' : ''}
+                        ${index === 2 ? 'ring-1 ring-amber-600/50 shadow-amber-700/20' : ''}
                       `}
                     >
                   <div className="grid grid-cols-12 gap-4 items-center px-6 py-4 relative">

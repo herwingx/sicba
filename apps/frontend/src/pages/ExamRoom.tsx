@@ -125,7 +125,8 @@ export function ExamRoom({ examId, onFinished, onAlreadySubmitted }: ExamRoomPro
         await fetch(`${API}/api/exams/${examId}/audit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action, metadata })
+          body: JSON.stringify({ action, metadata }),
+          keepalive: true
         })
         toast.error(`Incidencia detectada: ${action}`, { id: 'fraud-alert' })
       } catch (err) {
