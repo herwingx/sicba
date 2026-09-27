@@ -92,7 +92,7 @@ export default function App() {
     if (window.location.hash.includes('live-scoreboard?id=')) {
       return new URLSearchParams(window.location.hash.split('?')[1]).get('id')
     }
-    return sessionStorage.getItem('sicba_active_exam')
+    return localStorage.getItem('sicba_active_exam')
   })
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
   // Bloqueo de navegación cuando el alumno está dentro del examen
@@ -134,7 +134,7 @@ export default function App() {
   }, [examInProgress])
 
   const confirmLeaveExam = () => {
-    sessionStorage.removeItem('sicba_active_exam')
+    localStorage.removeItem('sicba_active_exam')
     setLeaveAlertOpen(false)
     setExamInProgress(false)
     if (pendingHash) {
@@ -196,7 +196,7 @@ export default function App() {
   }
 
   const handleEnterExam = (examId: string) => {
-    sessionStorage.setItem('sicba_active_exam', examId)
+    localStorage.setItem('sicba_active_exam', examId)
     setActiveExamId(examId)
     setExamInProgress(true)   // Bloquear navegación hacia atrás mientras está en el examen
     navigateTo('exam-room')
@@ -240,7 +240,7 @@ export default function App() {
   }
 
   const handleReturnFromResult = () => {
-    sessionStorage.removeItem('sicba_active_exam')
+    localStorage.removeItem('sicba_active_exam')
     setExamResult(null)
     setActiveExamId(null)
     setExamInProgress(false)
@@ -352,6 +352,13 @@ export default function App() {
         </TooltipProvider>
       </ThemeProvider>
     )
+  }
+
+  // ─── PROTECCIÓN CONTRA SESIÓN PERDIDA EN EXAMEN ───────────────────────
+  if (currentPage === 'exam-room' && !activeExamId) {
+    // Si la URL dice exam-room pero perdimos el ID en storage, mandarlo a inicio
+    window.location.hash = 'dashboard'
+    return null // Retorna null en este render para evitar mostrar la página en construcción, el hashchange hará el resto
   }
 
   // ─── DASHBOARD PRINCIPAL ──────────────────────────────────────────────
