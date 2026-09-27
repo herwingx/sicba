@@ -72,8 +72,9 @@ export default function App() {
   
   // Estado de navegación (sincronizado con el hash de la URL para persistir al recargar).
   const [currentPage, setCurrentPage] = useState<Page>(() => {
-    let hash = window.location.hash.replace('#', '') as Page
+    let hash = window.location.hash.replace('#', '')
     if (!hash) hash = 'dashboard'
+    if (hash.startsWith('live-scoreboard')) hash = 'live-scoreboard'
     
     // Proteger inicialización
     const role = localStorage.getItem('sicba_role')
@@ -82,11 +83,17 @@ export default function App() {
       hash = 'dashboard'
     }
     
-    return hash
+    return hash as Page
   })
 
   // Contexto para el flujo de exámenes.
-  const [activeExamId, setActiveExamId] = useState<string | null>(null)
+  const [activeExamId, setActiveExamId] = useState<string | null>(() => {
+    // Si entramos directo a live-scoreboard con ID en la URL, lo recuperamos
+    if (window.location.hash.includes('live-scoreboard?id=')) {
+      return new URLSearchParams(window.location.hash.split('?')[1]).get('id')
+    }
+    return null
+  })
   const [examResult, setExamResult] = useState<ExamResultData | null>(null)
   // Bloqueo de navegación cuando el alumno está dentro del examen
   const [examInProgress, setExamInProgress] = useState(false)
@@ -103,7 +110,9 @@ export default function App() {
   // Escuchar cambios de hash (botones back/forward del navegador/mouse)
   useEffect(() => {
     const handleHashChange = (e: HashChangeEvent) => {
-      const newHash = new URL(e.newURL).hash.replace('#', '') as Page
+      let hashStr = new URL(e.newURL).hash.replace('#', '')
+      if (hashStr.startsWith('live-scoreboard')) hashStr = 'live-scoreboard'
+      const newHash = hashStr as Page
 
       // Si el alumno está en el examen e intenta salir hacia otra vista:
       // revertimos el hash y mostramos el AlertDialog.
@@ -234,9 +243,8 @@ export default function App() {
   }
 
   const handleOpenScoreboard = (examId: string) => {
-    setActiveExamId(examId)
-    setCurrentPage('live-scoreboard')
-    window.location.hash = 'live-scoreboard'
+    // Abre el Live Scoreboard en una nueva pestaña
+    window.open(`/#/live-scoreboard?id=${examId}`, '_blank')
   }
 
   /**
